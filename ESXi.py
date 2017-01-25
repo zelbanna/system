@@ -15,7 +15,6 @@ from os import getpid, remove, path as ospath
 from time import sleep, strftime, localtime
 from select import select
 
-syspath.append('/usr/local/sbin')
 import PasswordContainer as PC
 from SystemFunctions import sysDebug, setDebug
 

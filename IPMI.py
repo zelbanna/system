@@ -15,7 +15,6 @@ __status__ = "Production"
 from sys import argv, exit, path as syspath
 from subprocess import check_output, check_call
 
-syspath.append('/etc')
 import PasswordContainer as PC
 import SystemFunctions import sysCheckResults, sysStr2Hex
 

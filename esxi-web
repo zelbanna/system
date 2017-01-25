@@ -10,6 +10,8 @@ __author__ = "Zacharias El Banna"
 __version__ = "1.1"
 __status__ = "Production"
 
+from sys import path as syspath
+syspath.append('/usr/local/sbin')
 from ESXi import ESXi, argv
 
 esxi = ESXi(argv[1])
