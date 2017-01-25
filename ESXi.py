@@ -16,7 +16,7 @@ from time import sleep, strftime, localtime
 from select import select
 
 from PasswordContainer import esxi_username, esxi_password
-from SystemFunctions import sysDebug, setDebug
+from SystemFunctions import sysDebug, sysSetDebug
 
 ########################################### ESXi ############################################
 #
