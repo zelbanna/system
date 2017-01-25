@@ -27,18 +27,23 @@ import PasswordContainer as PC
 ################################# Generics ####################################
 #
 # Convert True/False of test to Success/Failure
-def checkResults(test):
+def sysCheckResults(test):
  return "success" if test else "failure"
 
-debug = False
+sysDebug = False
+sysLogFile = '/var/log/system/network.functions.log'
 
-def setDebug(astate):
- global debug
- debug = astate
-  
-def logMsg(amsg):
+def sysSetDebug(astate):
+ global sysDebug
+ sysDebug = astate
+
+def sysSetLog(alogfile):
+ global sysLogFile
+ sysLogFile = alogfile
+
+def sysLogMsg(amsg):
  if debug: print "Log: " + amsg
- with open('/var/log/system/network.functions.log', 'a') as f:
+ with open(sysLogFile, 'a') as f:
   f.write(unicode("{} : {}\n".format(strftime('%Y-%m-%d %H:%M:%S', localtime()), amsg)))
 
 ################################ LOOPIA DNS ###################################
@@ -56,7 +61,7 @@ def setLoopiaIP(subdomain, newip):
   data['rdata'] = newip
   status = client.updateZoneRecord(PC.loopia_username, PC.loopia_password, PC.loopia_domain, subdomain, data)[0]
  except Exception as exmlrpc:
-  logMsg("System Error - Loopia set: " + str(exmlrpc))
+  sysLogMsg("System Error - Loopia set: " + str(exmlrpc))
   return False
  return True
 
@@ -70,7 +75,7 @@ def getLoopiaIP(subdomain):
   data = client.getZoneRecords(PC.loopia_username, PC.loopia_password, PC.loopia_domain, subdomain)[0]
   return data['rdata']
  except Exception as exmlrpc:
-  logMsg("System Error - Loopia get: " + str(exmlrpc))
+  sysLogMsg("System Error - Loopia get: " + str(exmlrpc))
   return False
 
 
@@ -86,7 +91,7 @@ def OpenDNSmyIP():
   myiplookup = opendns.query("myip.opendns.com",'A').response.answer[0]
   return str(myiplookup).split()[4]
  except Exception as exresolve:
-  logMsg("OpenDNS Error - Resolve: " + str(exresolve))
+  sysLogMsg("OpenDNS Error - Resolve: " + str(exresolve))
   return False
 
 ################################ JUNOS RPCs #####################################
@@ -109,7 +114,7 @@ class SRX(object):
   try:
    self.router.open()
   except Exception as err:
-   logMsg("System Error - Unable to connect to router: " + str(err))
+   sysLogMsg("System Error - Unable to connect to router: " + str(err))
    return False
   return True
 
@@ -117,7 +122,7 @@ class SRX(object):
   try:
    self.router.close()
   except Exception as err:
-   logMsg("System Error - Unable to properly close router connection: " + str(err))
+   sysLogMsg("System Error - Unable to properly close router connection: " + str(err))
 
  def checkDHCP(self):
   try:
@@ -127,7 +132,7 @@ class SRX(object):
     self.dnslist = result.xpath(".//dhcp-option[dhcp-option-name='name-server']/dhcp-option-value")[0].text.strip('[] ').replace(", "," ").split()
     self.dhcpip = addresslist[0].text
   except Exception as err:
-   logMsg("System Error - verifying DHCP assignment: " + str(err))
+   sysLogMsg("System Error - verifying DHCP assignment: " + str(err))
    return False
   return True
 
@@ -135,7 +140,7 @@ class SRX(object):
   try:
    return self.router.rpc.cli("request system services dhcp renew " + interface, format='text')
   except Exception as err:
-   logMsg("System Error - cannot renew DHCP lease: " +str(err))
+   sysLogMsg("System Error - cannot renew DHCP lease: " +str(err))
   return False
    
  def checkIPsec(self,gwname):
@@ -148,7 +153,7 @@ class SRX(object):
    address = ike.xpath(".//gateway[name='" + gwname + "']/address")
    return False if len(address) == 0 else address[0].text
   except Exception as err:
-   logMsg("System Error - reading IPsec data: " + str(err))
+   sysLogMsg("System Error - reading IPsec data: " + str(err))
   return False
 
  def setIPsec(self,gwname,oldip,newip):
@@ -158,7 +163,7 @@ class SRX(object):
    cu.load("delete security ike gateway " + gwname + " address " + oldip, format = 'set')
    cu.commit("commit by setIPsec ["+gwname+"]")
   except Exception as err:
-   logMsg("System Error - modifying IPsec: " + str(err))
+   sysLogMsg("System Error - modifying IPsec: " + str(err))
    return False
   return True
 
@@ -213,12 +218,12 @@ def setPDNS(old,new):
 def syncPDNS(dnslist):
  pdns = getPDNS()
  if not pdns in dnslist:
-  logMsg("System Info - updating recursor to " + dnslist[0])
+  sysLogMsg("System Info - updating recursor to " + dnslist[0])
   setPDNS(pdns,dnslist[0])
   try:
    check_call(["/usr/sbin/service","pdns","reload"])
    sleep(1)
   except Exception as svcerr:
-   logMsg("System Error - Reloading PowerDNS: " + str(svcerr))
+   sysLogMsg("System Error - Reloading PowerDNS: " + str(svcerr))
   return False
  return True  
