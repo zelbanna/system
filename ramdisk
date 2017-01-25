@@ -1,0 +1,67 @@
+#!/bin/sh
+#
+# ramdisk 
+#
+# chkconfig: - 10 90
+#
+### BEGIN INIT INFO
+# Provides:          ramdisk
+# Required-Start:
+# Required-Stop:  
+# Default-Start:	2 3 4 5
+# Default-Stop:		0 1 6
+# X-Start-Before:	munin splunk
+# X-Stop-After:		munin splunk
+# Short-Description: Start ramdisk sync service
+### END INIT INFO
+
+RDIR=/mnt/ramdisk
+BDIR=/mnt/ramdisk-backup
+CRONFILE=/etc/cron.d/ramdisk
+
+case "$1" in
+	start)
+		echo "Copying files to ramdisk"
+		rsync -a $BDIR/ $RDIR/
+		echo [`date +"%Y-%m-%d %H:%M"`] Ramdisk Synched from HD \($1\) >> /var/log/ramdisk_sync.log
+		;;
+	sync | stop)
+		echo "Synching files from ramdisk to Harddisk ($1)"
+		rsync -a --delete --recursive --force $RDIR/ $BDIR/
+		echo [`date +"%Y-%m-%d %H:%M"`] Ramdisk Synched to HD \($1\) >> /var/log/ramdisk_sync.log
+		;;
+	install)
+		echo "Installing ramdisk on debian system"
+		apt-get install rsync
+		mkdir -p $RDIR/
+		mkdir -p $BDIR/
+
+		if ! grep -q $RDIR /etc/fstab; then
+			echo "tmpfs           $RDIR tmpfs      defaults,size=200M 0 0" >> /etc/fstab
+		fi
+
+		if [ ! -f $CRONFILE ]; then
+			echo "#" >  $CRONFILE
+			echo "# Ramdisk" >> $CRONFILE
+			echo "#" >> $CRONFILE
+			echo " " >> $CRONFILE
+			echo "MAILTO=root" >> $CRONFILE
+			echo "0 4,10 * * *    root    /etc/init.d/ramdisk sync >> /dev/null 2>&1" >> $CRONFILE
+			service cron restart
+		fi
+
+        if uname -a | grep -q Debian; then
+			XPATH=`pwd`/$0
+			XFILE=`echo $XPATH | sed 's/\.\///g'`        
+			ln -s  $XFILE /etc/init.d/
+			update-rc.d ramdisk defaults
+		fi
+                            		    
+		;;
+	*)
+		echo "Usage: /etc/init.d/ramdisk {start|stop|sync}"
+		exit 1
+		;;
+esac
+
+exit 0
