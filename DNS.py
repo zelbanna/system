@@ -7,7 +7,7 @@
 
 """
 __author__ = "Zacharias El Banna"                     
-__version__ = "3.0"
+__version__ = "3.1"
 __status__ = "Production"
 
 from subprocess import check_output, check_call

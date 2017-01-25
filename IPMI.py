@@ -3,13 +3,15 @@
 
 """Module docstring.
 
-System, ESXi, IPMI, DNS and networking interworking module
+IPMI interworking module
 
-- One can use other modules imported by this one "nested :-)
+- https://lime-technology.com/forum/index.php?topic=39238.0
+- requires ipmitool to be installed on system and "in path"
+- ipmitool -H <host> -U <username> -P <password> raw 0x3a 0x01 0x00 0x00 0x28 0x28 0x2d 0x2d 0x00 0x00
 
 """
 __author__ = "Zacharias El Banna"                     
-__version__ = "3.0"
+__version__ = "3.1"
 __status__ = "Production"
 
 from sys import argv, exit, path as syspath

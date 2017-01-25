@@ -7,7 +7,7 @@ The ESXi interworking module
 
 """
 __author__ = "Zacharias El Banna"
-__version__ = "3.0"
+__version__ = "3.1"
 __status__ = "Production"
 
 from sys import argv, exit, stdout, path as syspath
