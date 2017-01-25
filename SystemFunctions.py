@@ -11,7 +11,7 @@ __version__ = "3.0"
 __status__ = "Production"
 
 from os import remove, path as ospath
-from time import sleep
+from time import sleep, localtime, strftime
 
 ################################# Generics ####################################
 
@@ -23,6 +23,17 @@ sysDebug = False
 def sysSetDebug(astate):
  global sysDebug
  sysDebug = astate
+
+sysLogFile = '/var/log/system/network.functions.log'
+
+def sysSetLog(alogfile):
+ global sysLogFile
+ sysLogFile = alogfile
+    
+def sysLogMsg(amsg):
+ if sysDebug: print "Log: " + amsg
+ with open(sysLogFile, 'a') as f:
+  f.write(unicode("{} : {}\n".format(strftime('%Y-%m-%d %H:%M:%S', localtime()), amsg)))
 
 def sysStr2Hex(arg):
  try:

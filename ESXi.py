@@ -15,7 +15,7 @@ from os import getpid, remove, path as ospath
 from time import sleep, strftime, localtime
 from select import select
 
-import PasswordContainer as PC
+from PasswordContainer import esxi_username, esxi_password
 from SystemFunctions import sysDebug, setDebug
 
 ########################################### ESXi ############################################
@@ -49,7 +49,7 @@ class ESXi(object):
   try:
    self.sshclient = SSHClient()
    self.sshclient.set_missing_host_key_policy(AutoAddPolicy())
-   self.sshclient.connect(self.hostname, username=PC.esxi_username, password=PC.esxi_password )
+   self.sshclient.connect(self.hostname, username=esxi_username, password=esxi_password )
    # self.sshclient.get_transport().set_log_channel(self.hostname)
   except AuthenticationException:
    print "DEBUG: Authentication failed when connecting to %s" % self.hostname
