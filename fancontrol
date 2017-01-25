@@ -1,0 +1,42 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+"""Program docstring.
+
+Application to control ASRock IPMI (AMI?)
+
+- https://lime-technology.com/forum/index.php?topic=39238.0
+- requires ipmitool to be installed on system and "in path"
+- ipmitool -H <host> -U <username> -P <password> raw 0x3a 0x01 0x00 0x00 0x28 0x28 0x2d 0x2d 0x00 0x00
+
+"""
+__author__ = "Zacharias El Banna"
+__version__ = "2.0"
+__status__ = "Production"
+
+from sys import argv, exit, path as syspath
+syspath.append('/usr/local/sbin')
+from IPMI import IPMI
+
+
+############################ MAIN ############################
+#
+# Make funtions take host arg (= argv[1])
+#
+
+ipmi = IPMI(argv[1])
+
+if (len(argv) == 3) and (argv[2] == "-r"):
+ ipmi.printInfo("RPM")
+elif (len(argv) == 3) and (argv[2] == "-rv"):
+ ipmi.printInfo("RPM|degrees")
+elif len(argv) < 5 or len(argv) > 6 or (argv[2] != "-w"):
+ print argv[0] + " <host_ip> -w(ritfans) <rear fan(s) %> <front fan(s) %> [-v(erbose)]"
+ print argv[0] + " <host_ip> -r(eadfans)"
+ print argv[0] + " <host_ip> -r(eadfans)v(erbose)"
+ exit(0)
+elif (len(argv) == 6) and (argv[2] == "-w") and (argv[5] == "-v"):
+ ipmi.printInfo("RPM")
+ ipmi.setFans(argv[3],argv[4])
+else:
+ ipmi.setFans(argv[3],argv[4])

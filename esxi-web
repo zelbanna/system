@@ -1,0 +1,37 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+"""Program docstring.
+
+Application back-end for ESXi.php (should be cgi ?!)
+
+"""
+__author__ = "Zacharias El Banna"
+__version__ = "1.1"
+__status__ = "Production"
+
+from ESXi import ESXi, argv
+
+esxi = ESXi(argv[1])
+if len(argv) == 2:
+ statelist = esxi.loadVMs()
+ for vm in statelist:
+  print "<tr><td>" + vm[1] + "</td><td>"
+  basestr = "<A HREF=esxi.php?host=" + argv[1] + "&iid=" + vm[0] + "&next-state="
+  if vm[2] == 1:
+   print basestr + "off><IMG SRC=images/shutdown.png></A>"
+   print basestr + "hardoff><IMG SRC=images/poweroff.png></A>"
+   print basestr + "reboot><IMG SRC=images/reboot.png></A>"
+  elif vm[2] == 3:
+   print basestr + "resume><IMG SRC=images/start.png></A>"
+  else:
+   print basestr + "on><IMG SRC=images/start.png></A>"
+  print "</td></tr>"
+elif len(argv) == 3:
+ esxi.sshConnect()
+ esxi.sshSend(argv[2])
+ esxi.sshClose()
+else:
+ print argv[0] + " <esxi-host> [<command>]"
+
+
