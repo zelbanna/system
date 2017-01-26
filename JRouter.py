@@ -9,13 +9,13 @@ Junos Router
 
 """
 __author__ = "Zacharias El Banna"                     
-__version__ = "3.1"
+__version__ = "3.2"
 __status__ = "Production"
 
 from lxml import etree
-
 from PasswordContainer import netconf_username, netconf_password
-
+from netsnmp import VarList, Varbind, Session
+  
 ################################ JUNOS RPCs #####################################
 #
 # Connecto to Router, a couple of RPCs will be issued from there
@@ -33,7 +33,7 @@ class SRX(object):
   self.tunnels = 0
  
  def __str__(self):
-  return str(self.router) + " DNS:" + str(self.dnslist) + " IP:" + self.dhcpip + " IPsec:" + str(self.tunnels)
+  return str(self.router) + " Model:" + self.router.facts['model'] + " Version:" + self.router.facts['version'] + " DNS:" + str(self.dnslist) + " IP:" + self.dhcpip + " IPsec:" + str(self.tunnels)
 
  def connect(self):
   try:
@@ -48,7 +48,7 @@ class SRX(object):
    self.router.close()
   except Exception as err:
    sysLogMsg("System Error - Unable to properly close router connection: " + str(err))
-
+ 
  def checkDHCP(self):
   try:
    result = self.router.rpc.get_dhcp_client_information() 
@@ -100,3 +100,6 @@ class SRX(object):
 
  def getDev(self):
   return self.router
+
+ def getInfo(self,akey):
+  return self.router.facts[akey]
