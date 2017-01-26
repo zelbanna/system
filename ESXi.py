@@ -7,7 +7,7 @@ The ESXi interworking module
 
 """
 __author__ = "Zacharias El Banna"
-__version__ = "3.1"
+__version__ = "3.3"
 __status__ = "Production"
 
 from sys import argv, exit, stdout, path as syspath
@@ -23,14 +23,14 @@ from SystemFunctions import sysDebug, sysSetDebug
 # ESXi command interaction
 #
 
-revmap   = { 1 : "powered on", 2 : "powered off", 3 : "suspended" }
-statemap = { "powered on" : 1, "powered off" : 2, "suspended" : 3 }
-
 class ESXi(object):
  
  def __init__(self,aesxihost):
-  self.hostname = aesxihost
+  self.hostname  = aesxihost
   self.sshclient = None
+  self.community = "public"
+  self.statemap  = { "1" : "powered on", "2" : "powered off", "3" : "suspended", "powered on" : "1", "powered off" : "2", "suspended" : "3" }
+  self.backuplist = []
 
  def log(self,amsg):
   if sysDebug: print "Log: " + amsg
@@ -57,6 +57,7 @@ class ESXi(object):
 
  def sshSend(self,amessage):
   if not self.sshclient == None:
+   output = ""
    self.log("sendESXi: [" + amessage + "]")
    stdin, stdout, stderr = self.sshclient.exec_command(amessage)
    while not stdout.channel.exit_status_ready():
@@ -64,36 +65,88 @@ class ESXi(object):
     if stdout.channel.recv_ready():
      rl, wl, xl = select([stdout.channel], [], [], 0.0)
      if len(rl) > 0:
-      print stdout.channel.recv(4096),
+      output = output + stdout.channel.recv(4096)
+   return output.rstrip('\n')
   else:
    self.log("Error: trying to send to closed channel")
 
  def sshClose(self):
-  try:
-   self.sshclient.close()
-   self.sshclient = None
-  except Exception as err:
-   self.log( "Close error: " + str(err))
+  if not self.sshclient == None:
+   try:
+    self.sshclient.close()
+    self.sshclient = None
+   except Exception as err:
+    self.log( "Close error: " + str(err))
 
- #
- # Returns a list with tuples: [ vm.id, vm.name, vm.powerstate ]
- #
+ def getIdVM(self, aname):
+  from netsnmp import VarList, Varbind, Session
+  try:
+   vmnameobjs = VarList(Varbind('.1.3.6.1.4.1.6876.2.1.1.2'))
+   session = Session(Version = 2, DestHost = self.hostname, Community = self.community, UseNumeric = 1, Timeout = 100000, Retries = 2)
+   session.walk(vmnameobjs)
+   for result in vmnameobjs:
+    if result.val == aname:
+     return int(result.iid)
+  except:
+   pass
+  return -1
+
+ def state(self, astate):
+  return self.statemap[astate]
+ 
+ def getStateVM(self, aid):
+  from netsnmp import VarList, Varbind, Session
+  try:
+   vmstateobj = VarList(Varbind(".1.3.6.1.4.1.6876.2.1.1.6." + str(aid)))
+   session = Session(Version = 2, DestHost = self.hostname, Community = self.community, UseNumeric = 1, Timeout = 100000, Retries = 2)
+   session.get(vmstateobj)
+   return vmstateobj[0].val
+  except:
+   pass
+  return "unknown"
+
  def loadVMs(self):
+  #
+  # Returns a list with tuples of strings: [ vm.id, vm.name, vm.powerstate, vm.to_be_backedup ]
+  #
   from netsnmp import VarList, Varbind, Session
   statelist=[]
   try:
    vmnameobjs = VarList(Varbind('.1.3.6.1.4.1.6876.2.1.1.2'))
    vmstateobjs = VarList(Varbind('.1.3.6.1.4.1.6876.2.1.1.6'))
 
-   session = Session(Version = 2, DestHost = self.hostname, Community = "public", UseNumeric = 1, Timeout = 100000, Retries = 2)
+   session = Session(Version = 2, DestHost = self.hostname, Community = self.community, UseNumeric = 1, Timeout = 100000, Retries = 2)
    session.walk(vmnameobjs)
    session.walk(vmstateobjs)
 
    index = 0
    for result in vmnameobjs:
-    currstate = vmstateobjs[index].val
-    statelist.append([result.iid, result.val, statemap[currstate]])
+    statetuple = [result.iid, result.val, self.state(vmstateobjs[index].val)]
+    statetuple.append("1" if result.val in self.backuplist else "0")
+    statelist.append(statetuple)
     index = index + 1
   except Exception as exception_error:
    print "DEBUG " + str(exception_error)
   return statelist
+
+ def loadBackupFile(self, abackupfile):
+  #
+  # BackupFile contains list of vm names to backup
+  #
+  try:
+   data = self.sshSend("cat " + abackupfile)
+   self.backuplist = data.split()
+  except:
+   return False
+  return True   
+ 
+ def addBackupVM(self, abackupfile, avmname):
+  #
+  # Assume not loaded Backup file?
+  #
+  try:
+   self.loadBackupFile(abackupfile)
+   if not avmname in self.backuplist:
+    self.sshSend("echo '" + avmname + "' >> " + abackupfile)
+  except:
+   pass
