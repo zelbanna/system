@@ -7,13 +7,16 @@ Generic Functions
 
 """
 __author__ = "Zacharias El Banna"                     
-__version__ = "3.0"
+__version__ = "3.1"
 __status__ = "Production"
 
-from os import remove, path as ospath
+from os import remove, path as ospath, system
 from time import sleep, localtime, strftime
-
+ 
 ################################# Generics ####################################
+
+def pingOS(ip):
+ return system("ping -c 1 -w2 " + ip + " > /dev/null 2>&1") == 0
 
 def sysCheckResults(test):
  return "success" if test else "failure"
