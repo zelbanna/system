@@ -13,7 +13,7 @@ __status__ = "Production"
 from subprocess import check_output, check_call
 from time import sleep
 from PasswordContainer import loopia_username, loopia_password, loopia_domain
-from SystemFunctions import sysCheckResults, sysLogMsg
+from SystemFunctions import sysCheckResults, sysLogMsg, sysFileReplace
 from socket import gethostbyname
 
 ################################ LOOPIA DNS ###################################
@@ -48,8 +48,8 @@ def getLoopiaIP(subdomain):
   sysLogMsg("System Error - Loopia get: " + str(exmlrpc))
   return False
 
-def getLoopiaDomain():
- return loopia_domain
+def getLoopiaSuffix():
+ return "." + loopia_domain
 
 ################################# OpenDNS ######################################
 #
@@ -74,23 +74,6 @@ def getPDNS():
  return recursor.split('=')[1].split('#')[0].strip()
 
 #
-# Replace 'old' recursor with 'new'
-#
-
-def setPDNS(old,new):
- if new == "":
-  return False
- filedata = None
- with open('/etc/powerdns/pdns.conf', 'r') as file :
-  filedata = file.read()
-
- filedata = filedata.replace("recursor="+old, "recursor="+new)
-
- with open('/etc/powerdns/pdns.conf', 'w') as file:
-  file.write(filedata)
- return True
-
-#
 # All-in-one, runs check, verify and (if needed) set and reload pdns service
 # - returns True if was in sync and False if modified
 # 
@@ -98,7 +81,7 @@ def syncPDNS(dnslist):
  pdns = getPDNS()
  if not pdns in dnslist:
   sysLogMsg("System Info - updating recursor to " + dnslist[0])
-  setPDNS(pdns,dnslist[0])
+  sysFileReplace('/etc/powerdns/pdns.conf', pdns, dnslist[0])
   try:
    check_call(["/usr/sbin/service","pdns","reload"])
    sleep(1)

@@ -56,7 +56,7 @@ upif = argv[4]
 
 ########################### Run ################################
 from JRouter import SRX
-from DNS import getLoopiaIP, setLoopiaIP, getLoopiaDomain, syncPDNS
+from DNS import getLoopiaIP, setLoopiaIP, getLoopiaSuffix, syncPDNS
 from SystemFunctions import sysCheckResults, sysLogMsg
 
 try:
@@ -68,7 +68,7 @@ try:
   if len(srx.dnslist) > 0:
    if srx.pingRPC(srx.dnslist[0]):
     syncPDNS(srx.dnslist)
-    if srx.dhcpip != gethostbyname(site + getLoopiaDomain()):
+    if srx.dhcpip != gethostbyname(site + getLoopiaSuffix()):
      if srx.dhcpip != getLoopiaIP(site):
       setLoopiaIP(site,srx.dhcpip)
 
@@ -79,7 +79,7 @@ try:
      # Assume if one tunnel is up it's the hub 
      if srx.tunnels == 0:
       # no tunnels active
-      gwip = gethostbyname(gw + getLoopiaDomain())
+      gwip = gethostbyname(gw + getLoopiaSuffix())
       # check configured gw ip, still ok - try to ping, otherwise reconf 
       if gwip == address:
        sysLogMsg("Reachability Check - Ping IPsec gateway (" + gw + " | " + gwip + "): " + sysCheckResults(srx.pingRPC(gwip)))
