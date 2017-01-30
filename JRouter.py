@@ -5,11 +5,11 @@
 
 Junos Router
 
-- SRX functions should be overloaded
+- SRX functions should be overloaded on top of JRouter
 
 """
-__author__ = "Zacharias El Banna"                     
-__version__ = "3.2"
+__author__ = "Zacharias El Banna"
+__version__ = "3.3"
 __status__ = "Production"
 
 from lxml import etree
