@@ -9,31 +9,30 @@ Junos Router
 
 """
 __author__ = "Zacharias El Banna"
-__version__ = "3.3"
+__version__ = "4.0"
 __status__ = "Production"
 
 from lxml import etree
 from PasswordContainer import netconf_username, netconf_password
 from netsnmp import VarList, Varbind, Session
   
-################################ JUNOS RPCs #####################################
+################################ JUNOS Object #####################################
 #
-# Connecto to Router, a couple of RPCs will be issued from there
+# Connect to Router, a couple of RPCs will be issued from there
 #
 
-class SRX(object):
+class JRouter(object):
 
  def __init__(self,hostname):
   from jnpr.junos import Device
   from jnpr.junos.utils.config import Config
   self.router = Device(hostname, user=netconf_username, password=netconf_password, normalize=True)
   self.config = Config(self.router)
-  self.dnslist = []
-  self.dhcpip = ""
-  self.tunnels = 0
+  self.type = None
  
  def __str__(self):
-  return str(self.router) + " Model:" + self.router.facts['model'] + " Version:" + self.router.facts['version'] + " DNS:" + str(self.dnslist) + " IP:" + self.dhcpip + " IPsec:" + str(self.tunnels)
+  return str(self.router) + " Model:" + self.router.facts['model'] + " Version:" + self.router.facts['version']
+  
 
  def connect(self):
   try:
@@ -49,6 +48,36 @@ class SRX(object):
   except Exception as err:
    sysLogMsg("System Error - Unable to properly close router connection: " + str(err))
  
+ def pingRPC(self,ip):
+  result = self.router.rpc.ping(host=ip, count='1')
+  return len(result.xpath("ping-success"))
+
+ def getRPC(self):
+  return self.router.rpc
+
+ def getDev(self):
+  return self.router
+
+ def getInfo(self,akey):
+  return self.router.facts[akey]
+
+ def getType(self)
+  return self.type
+
+################################ SRX Object #####################################
+
+class SRX(JRouter):
+
+ def __init__(self,hostname):
+  JRouter.__init__(self, hostname)
+  self.dnslist = []
+  self.dhcpip = ""
+  self.tunnels = 0
+  self.type = "SRX"
+
+ def __str__(self):
+  return JRouter.__str__(self) + " DNS:" + str(self.dnslist) + " IP:" + self.dhcpip + " IPsec:" + str(self.tunnels)
+
  def checkDHCP(self):
   try:
    result = self.router.rpc.get_dhcp_client_information() 
@@ -90,16 +119,3 @@ class SRX(object):
    sysLogMsg("System Error - modifying IPsec: " + str(err))
    return False
   return True
-
- def pingRPC(self,ip):
-  result = self.router.rpc.ping(host=ip, count='1')
-  return len(result.xpath("ping-success"))
-
- def getRPC(self):
-  return self.router.rpc
-
- def getDev(self):
-  return self.router
-
- def getInfo(self,akey):
-  return self.router.facts[akey]
