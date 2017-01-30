@@ -61,7 +61,7 @@ class JRouter(object):
  def getInfo(self,akey):
   return self.router.facts[akey]
 
- def getType(self)
+ def getType(self):
   return self.type
 
 ################################ SRX Object #####################################
