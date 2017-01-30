@@ -7,15 +7,14 @@
 
 """
 __author__ = "Zacharias El Banna"                     
-__version__ = "3.1"
+__version__ = "3.2"
 __status__ = "Production"
 
 from subprocess import check_output, check_call
 from time import sleep
-from socket import gethostbyname
-from os import system
 from PasswordContainer import loopia_username, loopia_password, loopia_domain
 from SystemFunctions import sysCheckResults, sysLogMsg
+from socket import gethostbyname
 
 ################################ LOOPIA DNS ###################################
 #
@@ -49,6 +48,8 @@ def getLoopiaIP(subdomain):
   sysLogMsg("System Error - Loopia get: " + str(exmlrpc))
   return False
 
+def getLoopiaDomain():
+ return loopia_domain
 
 ################################# OpenDNS ######################################
 #
@@ -64,16 +65,6 @@ def OpenDNSmyIP():
  except Exception as exresolve:
   sysLogMsg("OpenDNS Error - Resolve: " + str(exresolve))
   return False
-
-################################ OS SYSTEM FUNCTIONS ###################################
-#
-# Ping from node to different services
-#
-def pingOS(ip):
- return system("ping -c 1 -w2 " + ip + " > /dev/null 2>&1") == 0
-
-def getIPBySite(site):
- return gethostbyname(site + "." + loopia_domain)
  
 ############################### PDNS SYSTEM FUNCTIONS ##################################
 #
