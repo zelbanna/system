@@ -16,7 +16,7 @@ from time import sleep, localtime, strftime
 ################################# Generics ####################################
 
 def pingOS(ip):
- return system("ping -c 1 -w2 " + ip + " > /dev/null 2>&1") == 0
+ return system("ping -c 1 -w 1 " + ip + " > /dev/null 2>&1") == 0
 
 def sysCheckResults(test):
  return "success" if test else "failure"
@@ -65,3 +65,18 @@ def sysLockPidFile(pidfname, sleeptime):
  while ospath.isfile(pidfname):
   sleep(sleeptime)
  sysWritePidFile(pidfname) 
+
+def sysFileReplace(afile,old,new):
+ if file == "" or new == "" or old == "":
+  return False
+
+ filedata = None
+ with open(afile, 'r') as file :
+  filedata = file.read()
+       
+ filedata = filedata.replace(old,new)
+        
+ with open(afile, 'w') as file:
+  file.write(filedata)
+ return True
+            
