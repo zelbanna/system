@@ -17,6 +17,7 @@ from select import select
 
 from PasswordContainer import esxi_username, esxi_password
 from SystemFunctions import sysDebug, sysSetDebug
+from netsnmp import VarList, Varbind, Session
 
 ########################################### ESXi ############################################
 #
@@ -32,6 +33,9 @@ class ESXi(object):
   self.statemap  = { "1" : "powered on", "2" : "powered off", "3" : "suspended", "powered on" : "1", "powered off" : "2", "suspended" : "3" }
   self.backuplist = []
 
+ def __str__(self):
+  return str(self.hostname) + " SNMP_Community:" + str(self.community) + " SSHclient:" + str(self.sshclient) + " Backuplist:" + str(self.backuplist)
+   
  def log(self,amsg):
   if sysDebug: print "Log: " + amsg
   with open("/var/log/network/" + self.hostname + ".operations.log", 'a') as f:
@@ -45,7 +49,6 @@ class ESXi(object):
 
  def sshConnect(self):
   from paramiko import SSHClient, AutoAddPolicy, AuthenticationException
-
   try:
    self.sshclient = SSHClient()
    self.sshclient.set_missing_host_key_policy(AutoAddPolicy())
@@ -79,7 +82,6 @@ class ESXi(object):
     self.log( "Close error: " + str(err))
 
  def getIdVM(self, aname):
-  from netsnmp import VarList, Varbind, Session
   try:
    vmnameobjs = VarList(Varbind('.1.3.6.1.4.1.6876.2.1.1.2'))
    session = Session(Version = 2, DestHost = self.hostname, Community = self.community, UseNumeric = 1, Timeout = 100000, Retries = 2)
@@ -95,7 +97,6 @@ class ESXi(object):
   return self.statemap[astate]
  
  def getStateVM(self, aid):
-  from netsnmp import VarList, Varbind, Session
   try:
    vmstateobj = VarList(Varbind(".1.3.6.1.4.1.6876.2.1.1.6." + str(aid)))
    session = Session(Version = 2, DestHost = self.hostname, Community = self.community, UseNumeric = 1, Timeout = 100000, Retries = 2)
@@ -109,7 +110,6 @@ class ESXi(object):
   #
   # Returns a list with tuples of strings: [ vm.id, vm.name, vm.powerstate, vm.to_be_backedup ]
   #
-  from netsnmp import VarList, Varbind, Session
   statelist=[]
   try:
    vmnameobjs = VarList(Varbind('.1.3.6.1.4.1.6876.2.1.1.2'))
@@ -122,7 +122,7 @@ class ESXi(object):
    index = 0
    for result in vmnameobjs:
     statetuple = [result.iid, result.val, self.state(vmstateobjs[index].val)]
-    statetuple.append("1" if result.val in self.backuplist else "0")
+    statetuple.append(result.val in self.backuplist)
     statelist.append(statetuple)
     index = index + 1
   except Exception as exception_error:

@@ -20,20 +20,20 @@ if len(argv) == 2:
  for vm in statelist:
   print "<tr><td>" + vm[1] + "</td><td>"
   basestr = "<A HREF=esxi.php?host=" + argv[1] + "&iid=" + vm[0] + "&next-state="
-  if vm[2] == 1:
+  if vm[2] == "1":
    print basestr + "off><IMG SRC=images/shutdown.png></A>"
    print basestr + "hardoff><IMG SRC=images/poweroff.png></A>"
    print basestr + "reboot><IMG SRC=images/reboot.png></A>"
-  elif vm[2] == 3:
+  elif vm[2] == "3":
    print basestr + "resume><IMG SRC=images/start.png></A>"
   else:
    print basestr + "on><IMG SRC=images/start.png></A>"
   print "</td></tr>"
 elif len(argv) == 3:
  esxi.sshConnect()
- esxi.sshSend(argv[2])
+ output = esxi.sshSend(argv[2])
+ if not output == "":
+  print output 
  esxi.sshClose()
 else:
  print argv[0] + " <esxi-host> [<command>]"
-
-
