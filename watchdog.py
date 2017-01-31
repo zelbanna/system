@@ -66,7 +66,7 @@ if argv[1] == "debug":
 try:
  srx = SRX(fwip)
  if srx.connect():
-  sysLogDebug("Connected to",fwip)
+  sysLogDebug("Connected to: " + fwip)
   srx.checkDHCP()
 
   # First check DNS recursion
