@@ -15,7 +15,8 @@ __status__ = "Production"
 from lxml import etree
 from PasswordContainer import netconf_username, netconf_password
 from netsnmp import VarList, Varbind, Session
-  
+from SystemFunctions import sysLogMsg
+
 ################################ JUNOS Object #####################################
 #
 # Connect to Router, a couple of RPCs will be issued from there
@@ -31,8 +32,10 @@ class JRouter(object):
   self.type = None
  
  def __str__(self):
-  return str(self.router) + " Model:" + self.router.facts['model'] + " Version:" + self.router.facts['version']
-  
+  if not self.router.facts == {}:
+   return str(self.router) + " Model:" + self.router.facts['model'] + " Version:" + self.router.facts['version']
+  else:
+   return str(self.router)
 
  def connect(self):
   try:
@@ -63,6 +66,16 @@ class JRouter(object):
 
  def getType(self):
   return self.type
+
+ def getUpInterfaces(self):
+  # Could have used (terse=True) but that doesn't give SNMP index for munin...
+  interfaces = self.router.rpc.get_interface_information()
+  result = []
+  for intf in interfaces:
+   status = map((lambda pos: intf[pos].text), [0,2,4])
+   if status[0].split('-')[0] in [ 'ge', 'fe', 'xe', 'et','st0' ] and status[1] == "up":
+    result.append(status)
+  return result
 
 ################################ SRX Object #####################################
 
@@ -119,3 +132,4 @@ class SRX(JRouter):
    sysLogMsg("System Error - modifying IPsec: " + str(err))
    return False
   return True
+
