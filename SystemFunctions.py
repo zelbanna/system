@@ -7,7 +7,7 @@ Generic Functions
 
 """
 __author__ = "Zacharias El Banna"                     
-__version__ = "3.1"
+__version__ = "3.2"
 __status__ = "Production"
 
 from os import remove, path as ospath, system
@@ -27,6 +27,9 @@ def sysSetDebug(astate):
  global sysDebug
  sysDebug = astate
 
+def sysLogDebug(amsg):
+ if sysDebug: print "Log: " + amsg
+
 sysLogFile = '/var/log/system/network.functions.log'
 
 def sysSetLog(alogfile):
@@ -34,7 +37,7 @@ def sysSetLog(alogfile):
  sysLogFile = alogfile
     
 def sysLogMsg(amsg):
- if sysDebug: print "Log: " + amsg
+ sysLogDebug(amsg)
  with open(sysLogFile, 'a') as f:
   f.write(unicode("{} : {}\n".format(strftime('%Y-%m-%d %H:%M:%S', localtime()), amsg)))
 
