@@ -16,8 +16,8 @@ from socket import gethostbyname
 from sys import argv, exit, path as syspath
 syspath.append('/usr/local/sbin/')
 
-if len(argv) < 5 or argv[1] not in [ "run", "install" ]:
- print argv[0] + " <run | install> <fw> <local site NAME> <fw upstream interface> [<ipsec hub NAME>]"
+if len(argv) < 5 or argv[1] not in [ "run", "debug", "install" ]:
+ print argv[0] + " <run | debug | install> <fw> <local site NAME> <fw upstream interface> [<ipsec hub NAME>]"
  print ""
  print " - ipsec hub site name mist be same as gw in DNS (through lookup) AND used in ike, e.g. site-gw"
  print ""
@@ -44,6 +44,7 @@ except Exception as err:
  sysLogMsg("System Error - local name server resolution not working, check DNS status")
  exit(1)
 
+
 if len(argv) > 5:
  gw = argv[5]
  gwname = gw + "-gw"
@@ -57,13 +58,17 @@ upif = argv[4]
 ########################### Run ################################
 from JRouter import SRX
 from DNS import getLoopiaIP, setLoopiaIP, getLoopiaSuffix, syncPDNS
-from SystemFunctions import sysCheckResults, sysLogMsg
+from SystemFunctions import sysCheckResults, sysLogMsg, sysSetDebug, sysLogDebug
+
+if argv[1] == "debug":
+ sysSetDebug(True)
 
 try:
  srx = SRX(fwip)
  if srx.connect():
+  sysLogDebug("Connected to",fwip)
   srx.checkDHCP()
- 
+
   # First check DNS recursion
   if len(srx.dnslist) > 0:
    if srx.pingRPC(srx.dnslist[0]):
