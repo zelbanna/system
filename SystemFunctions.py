@@ -70,16 +70,16 @@ def sysLockPidFile(pidfname, sleeptime):
  sysWritePidFile(pidfname) 
 
 def sysFileReplace(afile,old,new):
- if file == "" or new == "" or old == "":
+ if afile == "" or new == "" or old == "":
   return False
 
  filedata = None
- with open(afile, 'r') as file :
-  filedata = file.read()
-       
+ with open(afile, 'r') as f:
+  filedata = f.read()
+
  filedata = filedata.replace(old,new)
-        
- with open(afile, 'w') as file:
-  file.write(filedata)
+
+ with open(afile, 'w') as f:
+  f.write(filedata)
  return True
             
