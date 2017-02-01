@@ -3,17 +3,48 @@
 
 """Module docstring.
 
-Generic Functions
+Generic Functions, exports:
+
+- sysIP2Int
+- sysInt2IP
+- sysStr2Hex
+- pingOS
+- sysCheckResults
+- sysSetDebug
+- sysLogDebug
+- sysSetLog
+- sysDebug (bool)
+- sysLogMsg
+
+- sysWritePidFile
+- sysReadPidFile
+- sysLockPid
+- sysReleasePid
+- sysFileReplace
 
 """
 __author__ = "Zacharias El Banna"                     
-__version__ = "3.2"
+__version__ = "3.3"
 __status__ = "Production"
 
 from os import remove, path as ospath, system
 from time import sleep, localtime, strftime
- 
+from struct import pack, unpack
+from socket import inet_ntoa, inet_aton, gethostbyaddr
+
 ################################# Generics ####################################
+
+def sysIP2Int(addr):
+ return unpack("!I", inet_aton(addr))[0]
+ 
+def sysInt2IP(addr):
+ return inet_ntoa(pack("!I", addr))
+
+def sysStr2Hex(arg):
+ try:
+  return '0x{0:02x}'.format(int(arg))
+ except:
+  return '0x00'    
 
 def pingOS(ip):
  return system("ping -c 1 -w 1 " + ip + " > /dev/null 2>&1") == 0
@@ -40,12 +71,6 @@ def sysLogMsg(amsg):
  sysLogDebug(amsg)
  with open(sysLogFile, 'a') as f:
   f.write(unicode("{} : {}\n".format(strftime('%Y-%m-%d %H:%M:%S', localtime()), amsg)))
-
-def sysStr2Hex(arg):
- try:
-  return '0x{0:02x}'.format(int(arg))
- except:
-  return '0x00'    
 
 def sysWritePidFile(pidfname):
  pidfile = open(pidfname,'w')
