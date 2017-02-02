@@ -15,18 +15,16 @@ __status__ = "Production"
 from sys import argv, exit, path as syspath
 syspath.append('/usr/local/sbin')
 from Munin import muninDiscover
+from SystemFunctions import simpleArgParser
 
-#################### MAIN ####################
-# print start, stop, stop - start
-
-if len(argv) < 2:
- print argv[0] + " <start/single ip> [<end ip>]"
+if len(argv) == 1:
+ print argv[0] + "--domain <domain/suffix> --start <start/single ip> [--end <end ip>]"
  exit(0)
 
-start = argv[1]
-if len(argv) == 2:
- stop  = start
-else: 
- stop  = argv[2]
+args = simpleArgParser(argv)
 
-muninDiscover(start,stop, "127.0.0.1")
+start = args.get('start')
+stop  = args.get('end', start)
+domain = args.get('domain','mgmt')
+
+muninDiscover(start,stop,domain)

@@ -73,23 +73,31 @@ def muninAppendConf(amuninconf, aname, aip, aupdate):
                                                                                      
 ############################## Munin Host checks model ##############################
 #
+# Device must answer to ping(!)
+#
 # result tuple = [ ip, resolved_hname, snmp_hname, vendor, model, type ]
-#  - resolved_hname = Unknown if existing device but not found in DNS, None otherwise
-#  - snmp_hname     = Unknown if not found by SNMP
+#  - resolved_hname = Name or "unknown" if not found in DNS
+#  - snmp_hname     = "unknown" if nothing found by SNMP
 
 def muninCheckHost(ahostname):
+ if not pingOS(ahostname):
+  return None
+
  try:
   devobjs = VarList(Varbind('.1.3.6.1.2.1.1.1.0'), Varbind('.1.3.6.1.2.1.1.5.0'))
   session = Session(Version = 2, DestHost = ahostname, Community = 'public', UseNumeric = 1, Timeout = 100000, Retries = 2)
   session.get(devobjs)
-  try:
-   name = gethostbyaddr(ahostname)[0]  
-  except:
-   name = "unknown"
+ except:
+  pass
 
-  if devobjs[0].val == None:
-   return [ ahostname, name, "unknown", None ] if pingOS(ahostname) else [ ahostname, "none", "unknown", None ]
+ try:
+  name = gethostbyaddr(ahostname)[0]  
+ except:
+  name = "unknown"
 
+ if devobjs[0].val == None:
+  return [ ahostname, name, "unknown", None ]
+ else:
   infolist = devobjs[0].val.split()
   results = [ ahostname, name, devobjs[1].val.lower(), infolist[0] ]
   if infolist[0] == "Juniper":
@@ -120,10 +128,7 @@ def muninCheckHost(ahostname):
   else:
    results.append("other")
    results.append( " ".join(infolist[0:4]) )
-
   return results
- except Exception as exception_error:
-  print "DEBUG " + str(exception_error)
 
 
 ########################## Munin Host Discovery ##########################
@@ -132,11 +137,12 @@ def muninCheckHost(ahostname):
 #
 # - astart ip
 # - astop ip
-# - ahandler, ip of machine that execute snmp fetch
+# - domain string (like stolabs)
+# - ahandler, ip of machine that execute snmp fetch, defaults to 127.0.0.1
 #
+# Output files must exist (!)
 
-def muninDiscover(astart, astop, ahandler):
-
+def muninDiscover(astart, astop, adomain, ahandler = '127.0.0.1'):
  hostsmods = '/var/tmp/hosts.conf'
  muninadds = '/var/tmp/munin.conf'
  muninconf = '/etc/munin/munin.conf'
@@ -145,45 +151,49 @@ def muninDiscover(astart, astop, ahandler):
  
  ############## Truncate files ################
  chmod(muninadds, 0o755)
- chmod(hostsmods, 0o755)
+ chmod(hostsmods, 0o644)
 
  with open(muninadds, 'w') as f:
   f.write("#!/bin/bash\n")
 
  with open(hostsmods, 'w') as f:
-  f.write("#!/bin/bash\n")
+  f.write("####### HOSTS ERRORS #######\n")
 
  ############### Traverse IPs #################
 
  for ip in sysIPs2Range(astart, astop):
   found = muninCheckHost(ip)
-  name = found[2] if found[1] == "unknown" else found[1] 
+  
+  if not found: continue
 
-  with open(hostsmods, 'a') as hosts:
-   if found[1] == "unknown" and not found[2] == "unknown":
-    print ip + " -> " + str(found)
-    hosts.write('# ' + ip + "    " + found[2] + "\n")
-   if not found[1] == 'none' and not found[1].split('.')[0] == found[2].split('.')[0]:
-    hosts.write("# IP entry existed but different from SNMP name\n")
-    hosts.write("# " + ip + "    " + found[1] + "    " + found[2] + "\n")
+  fqdn = found[2] if found[1] == "unknown" else found[1] 
+
+  dnsname  = found[1].split('.')[0].lower()
+  snmpname = found[2].split('.')[0].lower()
+
+  if not adomain in fqdn or dnsname == "unknown":
+   with open(hostsmods, 'a') as hosts:
+    hosts.write('# IP:' + ip + '\tDNS:' + dnsname + '\tSNMP' + snmpname + "\n")
+   # Truncate FQDN and add argument domain
+   fqdn = fqdn.split('.')[0] + "." + adomain
 
   with open(muninadds, 'a') as munin:
    if found[3] == "VMware":
-    if not name in muninconfdict:
-     muninAppendConf(muninconf, name, ahandler, "no") 
-    munin.write('ln -s /usr/share/munin/plugins/snmp__uptime /etc/munin/plugins/snmp_' + name + '_uptime\n')              
-    munin.write('ln -s /usr/local/sbin/plugins/snmp__esxi    /etc/munin/plugins/snmp_' + name + '_esxi\n')
+    if not fqdn in muninconfdict:
+     muninAppendConf(muninconf, fqdn, ahandler, "no") 
+    munin.write('ln -s /usr/share/munin/plugins/snmp__uptime /etc/munin/plugins/snmp_' + fqdn + '_uptime\n')              
+    munin.write('ln -s /usr/local/sbin/plugins/snmp__esxi    /etc/munin/plugins/snmp_' + fqdn + '_esxi\n')
 
    if found[3] == "Juniper" and not found[5] == "other":
     jdev = JRouter(found[0])
     if jdev.connect():
-     if not name in muninconfdict:
-      muninAppendConf(muninconf, name, ahandler, "no")
-     munin.write('ln -s /usr/local/sbin/plugins/snmp__' + found[5] + ' /etc/munin/plugins/snmp_'+ name +'_' + found[5] +'\n')
-     munin.write('ln -s /usr/share/munin/plugins/snmp__uptime /etc/munin/plugins/snmp_' + name + '_uptime\n')
-     munin.write('ln -s /usr/share/munin/plugins/snmp__users  /etc/munin/plugins/snmp_' + name + '_users\n')
+     if not fqdn in muninconfdict:
+      muninAppendConf(muninconf, fqdn, ahandler, "no")
+     munin.write('ln -s /usr/local/sbin/plugins/snmp__' + found[5] + ' /etc/munin/plugins/snmp_'+ fqdn +'_' + found[5] +'\n')
+     munin.write('ln -s /usr/share/munin/plugins/snmp__uptime /etc/munin/plugins/snmp_' + fqdn + '_uptime\n')
+     munin.write('ln -s /usr/share/munin/plugins/snmp__users  /etc/munin/plugins/snmp_' + fqdn + '_users\n')
      for ifd in jdev.getUpInterfaces():
-      munin.write('ln -s /usr/share/munin/plugins/snmp__if_   /etc/munin/plugins/snmp_' + name + '_if_'+ ifd[2] +'\n')
+      munin.write('ln -s /usr/share/munin/plugins/snmp__if_   /etc/munin/plugins/snmp_' + fqdn + '_if_'+ ifd[2] +'\n')
      jdev.close()
     else:
      print found[1],"impossible to connect!"

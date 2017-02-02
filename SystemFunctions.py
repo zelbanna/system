@@ -17,6 +17,8 @@ Generic Functions, exports:
 - sysDebug (bool)
 - sysLogMsg
 
+- simpleArgParser
+
 - sysWritePidFile
 - sysReadPidFile
 - sysLockPid
@@ -25,7 +27,7 @@ Generic Functions, exports:
 
 """
 __author__ = "Zacharias El Banna"                     
-__version__ = "4.1"
+__version__ = "4.2"
 __status__ = "Production"
 
 from os import remove, path as ospath, system
@@ -74,6 +76,29 @@ def sysLogMsg(amsg):
  sysLogDebug(amsg)
  with open(sysLogFile, 'a') as f:
   f.write(unicode("{} : {}\n".format(strftime('%Y-%m-%d %H:%M:%S', localtime()), amsg)))
+
+#
+# Lightweight argument parser, returns a dictionary with found arguments - { arg : value }
+# Requires - or -- before any argument
+#
+def simpleArgParser(args):
+ # args should really be the argv
+ argdict = {}
+ currkey = None
+ for arg in args:
+  if arg.startswith('-'):
+   if currkey:    
+    argdict[currkey] = True
+   currkey = arg.lstrip('-') 
+  else:
+   if currkey:         
+    argdict[currkey] = arg
+    currkey = None
+                 
+ if currkey:
+  argdict[currkey] = True
+ return argdict
+
 
 def sysWritePidFile(pidfname):
  pidfile = open(pidfname,'w')
