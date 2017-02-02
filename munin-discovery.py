@@ -19,15 +19,14 @@ from Munin import muninDiscover
 #################### MAIN ####################
 # print start, stop, stop - start
 
-if len(argv) < 3:
- print argv[0] + " <file|stdout> <start/single ip> [<end ip>]"
+if len(argv) < 2:
+ print argv[0] + " <start/single ip> [<end ip>]"
  exit(0)
 
-start = argv[2]
-if len(argv) == 3:
+start = argv[1]
+if len(argv) == 2:
  stop  = start
 else: 
- stop  = argv[3]
+ stop  = argv[2]
 
 muninDiscover(start,stop, "127.0.0.1")
-
