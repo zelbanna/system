@@ -171,7 +171,6 @@ def muninDiscover(astart, astop, ahandler):
    if found[3] == "VMware":
     if not name in muninconfdict:
      muninAppendConf(muninconf, name, ahandler, "no") 
-    print "Muninconf: " + str(muninconfdict[name])
     munin.write('ln -s /usr/share/munin/plugins/snmp__uptime /etc/munin/plugins/snmp_' + name + '_uptime\n')              
     munin.write('ln -s /usr/local/sbin/plugins/snmp__esxi    /etc/munin/plugins/snmp_' + name + '_esxi\n')
 
