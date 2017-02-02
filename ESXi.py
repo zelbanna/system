@@ -121,7 +121,7 @@ class ESXi(object):
 
    index = 0
    for result in vmnameobjs:
-    statetuple = [result.iid, result.val, self.vmstatemap(vmstateobjs[index].val)]
+    statetuple = [result.iid, result.val, self.vmstatemap[vmstateobjs[index].val]]
     statetuple.append(result.val in self.backuplist)
     statelist.append(statetuple)
     index = index + 1
