@@ -12,21 +12,19 @@ Module for munin interaction
 Exports:
 - muninLoadConf
 - muninSetConf
+- muninAppendConf
 - muninCheckHost
-- muninDiscovery
+- muninDiscover
 
 """  
 __author__ = "Zacharias El Banna"
-__version__ = "1.0"
-__status__ = "Beta"
+__version__ = "1.2"
+__status__ = "Production"
 
 from netsnmp import VarList, Varbind, Session       
-from SystemFunctions import pingOS, sysInt2IP, sysIP2Int
+from SystemFunctions import pingOS, sysIPs2Range
 from JRouter import JRouter
-
-hostsmods = '/var/tmp/hosts.conf'
-muninadds = '/var/tmp/munin.conf'
-muninconf = '/etc/munin/munin.conf'
+from os import chmod
 
 ######################### Load munin.conf entries ########################
 
@@ -48,13 +46,29 @@ def muninLoadConf(amuninconf):
     found = []
   return foundall
   
-def muninSetConf(amuninconf,entry, state):
- filedata = None
- with open(amuninconf, 'r') as munin :
+def muninSetConf(amuninconf, aname, astate):
+ oldstate = "no" if astate == "yes" else "yes"
+
+ with open(amuninconf, 'r') as munin:
   filedata = munin.read()
-              
- with open(amuninconf, 'w') as munin:
-  munin.write(filedata)
+ 
+ pos = filedata.find("[" + aname + "]")
+ old = None
+ new = None
+ if pos > 0:
+  old = filedata[pos:pos + 100].split("[")[1]
+  new = old.replace("update " + oldstate, "update " + astate, 1)
+  filedata = filedata.replace(old,new)
+  with open(amuninconf, 'w') as munin:
+   munin.write(filedata)
+  
+
+def muninAppendConf(amuninconf, aname, aip, aupdate):
+ with open(amuninconf, 'a') as munin:
+  munin.write("\n")
+  munin.write("[" + aname + "]\n")
+  munin.write("address " + aip + "\n")
+  munin.write("update " + aupdate + "\n")
                                                                                      
 ############################## Munin Host checks model ##############################
 #
@@ -110,41 +124,60 @@ def muninCheckHost(ahostname):
  except Exception as exception_error:
   print "DEBUG " + str(exception_error)
 
+
 ########################## Munin Host Discovery ##########################
 #
 # Output results to muninfile and hostsmods
 #
-def muninDiscoverys(start, stop):
+# - astart ip
+# - astop ip
+# - ahandler, ip of machine that execute snmp fetch
+#
 
+def muninDiscover(astart, astop, ahandler):
+
+ hostsmods = '/var/tmp/hosts.conf'
+ muninadds = '/var/tmp/munin.conf'
+ muninconf = '/etc/munin/munin.conf'
+
+ muninconfdict = muninLoadConf(muninconf)
+ 
  ############## Truncate files ################
+ chmod(muninadds, 0o755)
+ chmod(hostsmods, 0o755)
 
  with open(muninadds, 'w') as f:
-  f.write('############ MUNIN CONF #############\n')
+  f.write("#!/bin/bash\n")
+
  with open(hostsmods, 'w') as f:
-  f.write('############ MUNIN HOST #############\n')
+  f.write("#!/bin/bash\n")
 
  ############### Traverse IPs #################
 
- for ipint in range(start, stop + 1):
-  found = muninCheckHost(sysInt2IP(ipint))
+ for ip in sysIPs2Range(astart, astop):
+  found = muninCheckHost(ip)
   name = found[2] if found[1] == "unknown" else found[1] 
 
   with open(hostsmods, 'a') as hosts:
    if found[1] == "unknown" and not found[2] == "unknown":
-    hosts.write(found[0] + '\t' + found[2] + "\n")
+    hosts.write('# ' + ip + "    " + found[2] + "\n")
    if not found[1] == 'none' and not found[1].split('.')[0] == found[2].split('.')[0]:
-    hosts.write('# ' + found[1] + " is not " + found[2] + " for " + found[0] + "\n")
+    hosts.write("# IP entry existed but different from SNMP name\n")
+    hosts.write("# " + ip + "    " + found[1] + "    " + found[2] + "\n")
 
   with open(muninadds, 'a') as munin:
    if found[3] == "VMware":
-    print "Found " + name
+    if not name in muninconfdict:
+     muninAppendConf(muninconf, name, ahandler, "no") 
+    print "Muninconf: " + str(muninconfdict[name])
     munin.write('ln -s /usr/share/munin/plugins/snmp__uptime /etc/munin/plugins/snmp_' + name + '_uptime\n')              
     munin.write('ln -s /usr/local/sbin/plugins/snmp__esxi    /etc/munin/plugins/snmp_' + name + '_esxi\n')
 
    if found[3] == "Juniper" and not found[5] == "other":
     jdev = JRouter(found[0])
     if jdev.connect():
-     print "Found " + name
+     if not name in muninconfdict:
+      muninAppendConf(muninconf, name, ahandler, "no")
      munin.write('ln -s /usr/local/sbin/plugins/snmp__' + found[5] + ' /etc/munin/plugins/snmp_'+ name +'_' + found[5] +'\n')
      munin.write('ln -s /usr/share/munin/plugins/snmp__uptime /etc/munin/plugins/snmp_' + name + '_uptime\n')
      munin.write('ln -s /usr/share/munin/plugins/snmp__users  /etc/munin/plugins/snmp_' + name + '_users\n')

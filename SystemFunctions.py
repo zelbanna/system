@@ -5,13 +5,14 @@
 
 Generic Functions, exports:
 
+- sysSetDebug
+- sysLogDebug
 - sysIP2Int
 - sysInt2IP
+- sysIPs2Range
 - sysStr2Hex
 - pingOS
 - sysCheckResults
-- sysSetDebug
-- sysLogDebug
 - sysSetLog
 - sysDebug (bool)
 - sysLogMsg
@@ -24,7 +25,7 @@ Generic Functions, exports:
 
 """
 __author__ = "Zacharias El Banna"                     
-__version__ = "3.3"
+__version__ = "4.0"
 __status__ = "Production"
 
 from os import remove, path as ospath, system
@@ -34,11 +35,24 @@ from socket import inet_ntoa, inet_aton, gethostbyaddr
 
 ################################# Generics ####################################
 
+sysDebug = False
+sysLogFile = '/var/log/system/network.functions.log'
+
+def sysSetDebug(astate):
+ global sysDebug
+ sysDebug = astate
+
+def sysLogDebug(amsg):
+ if sysDebug: print "Log: " + amsg
+
 def sysIP2Int(addr):
  return unpack("!I", inet_aton(addr))[0]
  
 def sysInt2IP(addr):
  return inet_ntoa(pack("!I", addr))
+
+def sysIPs2Range(addr1,addr2):
+ return map(lambda addr: inet_ntoa(pack("!I", addr)), range(unpack("!I", inet_aton(addr1))[0], unpack("!I", inet_aton(addr2))[0] + 1))
 
 def sysStr2Hex(arg):
  try:
@@ -51,17 +65,6 @@ def pingOS(ip):
 
 def sysCheckResults(test):
  return "success" if test else "failure"
-
-sysDebug = False
-
-def sysSetDebug(astate):
- global sysDebug
- sysDebug = astate
-
-def sysLogDebug(amsg):
- if sysDebug: print "Log: " + amsg
-
-sysLogFile = '/var/log/system/network.functions.log'
 
 def sysSetLog(alogfile):
  global sysLogFile
