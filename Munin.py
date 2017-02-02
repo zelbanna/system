@@ -24,6 +24,7 @@ __status__ = "Production"
 from netsnmp import VarList, Varbind, Session       
 from SystemFunctions import pingOS, sysIPs2Range
 from JRouter import JRouter
+from socket import gethostbyaddr
 from os import chmod
 
 ######################### Load munin.conf entries ########################
@@ -160,6 +161,7 @@ def muninDiscover(astart, astop, ahandler):
 
   with open(hostsmods, 'a') as hosts:
    if found[1] == "unknown" and not found[2] == "unknown":
+    print ip + " -> " + str(found)
     hosts.write('# ' + ip + "    " + found[2] + "\n")
    if not found[1] == 'none' and not found[1].split('.')[0] == found[2].split('.')[0]:
     hosts.write("# IP entry existed but different from SNMP name\n")

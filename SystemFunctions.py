@@ -25,13 +25,13 @@ Generic Functions, exports:
 
 """
 __author__ = "Zacharias El Banna"                     
-__version__ = "4.0"
+__version__ = "4.1"
 __status__ = "Production"
 
 from os import remove, path as ospath, system
 from time import sleep, localtime, strftime
 from struct import pack, unpack
-from socket import inet_ntoa, inet_aton, gethostbyaddr
+from socket import inet_ntoa, inet_aton
 
 ################################# Generics ####################################
 
