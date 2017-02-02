@@ -3,25 +3,40 @@
 
 """Module docstring.
 
-Generic Functions
+Generic Functions, exports:
+
+- sysSetDebug
+- sysLogDebug
+- sysIP2Int
+- sysInt2IP
+- sysIPs2Range
+- sysStr2Hex
+- pingOS
+- sysCheckResults
+- sysSetLog
+- sysDebug (bool)
+- sysLogMsg
+
+- sysWritePidFile
+- sysReadPidFile
+- sysLockPid
+- sysReleasePid
+- sysFileReplace
 
 """
 __author__ = "Zacharias El Banna"                     
-__version__ = "3.2"
+__version__ = "4.0"
 __status__ = "Production"
 
 from os import remove, path as ospath, system
 from time import sleep, localtime, strftime
- 
+from struct import pack, unpack
+from socket import inet_ntoa, inet_aton, gethostbyaddr
+
 ################################# Generics ####################################
 
-def pingOS(ip):
- return system("ping -c 1 -w 1 " + ip + " > /dev/null 2>&1") == 0
-
-def sysCheckResults(test):
- return "success" if test else "failure"
-
 sysDebug = False
+sysLogFile = '/var/log/system/network.functions.log'
 
 def sysSetDebug(astate):
  global sysDebug
@@ -30,7 +45,26 @@ def sysSetDebug(astate):
 def sysLogDebug(amsg):
  if sysDebug: print "Log: " + amsg
 
-sysLogFile = '/var/log/system/network.functions.log'
+def sysIP2Int(addr):
+ return unpack("!I", inet_aton(addr))[0]
+ 
+def sysInt2IP(addr):
+ return inet_ntoa(pack("!I", addr))
+
+def sysIPs2Range(addr1,addr2):
+ return map(lambda addr: inet_ntoa(pack("!I", addr)), range(unpack("!I", inet_aton(addr1))[0], unpack("!I", inet_aton(addr2))[0] + 1))
+
+def sysStr2Hex(arg):
+ try:
+  return '0x{0:02x}'.format(int(arg))
+ except:
+  return '0x00'    
+
+def pingOS(ip):
+ return system("ping -c 1 -w 1 " + ip + " > /dev/null 2>&1") == 0
+
+def sysCheckResults(test):
+ return "success" if test else "failure"
 
 def sysSetLog(alogfile):
  global sysLogFile
@@ -40,12 +74,6 @@ def sysLogMsg(amsg):
  sysLogDebug(amsg)
  with open(sysLogFile, 'a') as f:
   f.write(unicode("{} : {}\n".format(strftime('%Y-%m-%d %H:%M:%S', localtime()), amsg)))
-
-def sysStr2Hex(arg):
- try:
-  return '0x{0:02x}'.format(int(arg))
- except:
-  return '0x00'    
 
 def sysWritePidFile(pidfname):
  pidfile = open(pidfname,'w')

@@ -7,7 +7,7 @@ The ESXi interworking module
 
 """
 __author__ = "Zacharias El Banna"
-__version__ = "3.3"
+__version__ = "3.4"
 __status__ = "Production"
 
 from sys import argv, exit, stdout, path as syspath
@@ -30,7 +30,7 @@ class ESXi(object):
   self.hostname  = aesxihost
   self.sshclient = None
   self.community = "public"
-  self.statemap  = { "1" : "powered on", "2" : "powered off", "3" : "suspended", "powered on" : "1", "powered off" : "2", "suspended" : "3" }
+  self.vmstatemap  = { "1" : "powered on", "2" : "powered off", "3" : "suspended", "powered on" : "1", "powered off" : "2", "suspended" : "3" }
   self.backuplist = []
 
  def __str__(self):
@@ -93,8 +93,8 @@ class ESXi(object):
    pass
   return -1
 
- def state(self, astate):
-  return self.statemap[astate]
+ def getStateStr(self, astate):
+  return self.vmstatemap[astate]
  
  def getStateVM(self, aid):
   try:
@@ -129,7 +129,7 @@ class ESXi(object):
    print "DEBUG " + str(exception_error)
   return statelist
 
- def loadBackupFile(self, abackupfile):
+ def backupLoadFile(self, abackupfile):
   #
   # BackupFile contains list of vm names to backup
   #
@@ -140,7 +140,7 @@ class ESXi(object):
    return False
   return True   
  
- def addBackupVM(self, abackupfile, avmname):
+ def backupAddVM(self, abackupfile, avmname):
   #
   # Assume not loaded Backup file?
   #
