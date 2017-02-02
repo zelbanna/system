@@ -7,7 +7,7 @@ The ESXi interworking module
 
 """
 __author__ = "Zacharias El Banna"
-__version__ = "3.4"
+__version__ = "3.5"
 __status__ = "Production"
 
 from sys import argv, exit, stdout, path as syspath
@@ -121,7 +121,7 @@ class ESXi(object):
 
    index = 0
    for result in vmnameobjs:
-    statetuple = [result.iid, result.val, self.state(vmstateobjs[index].val)]
+    statetuple = [result.iid, result.val, self.vmstatemap(vmstateobjs[index].val)]
     statetuple.append(result.val in self.backuplist)
     statelist.append(statetuple)
     index = index + 1
