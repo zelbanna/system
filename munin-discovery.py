@@ -9,7 +9,7 @@ Application to discovery network hosts on a subnet and deduce model (and manufac
 
 """
 __author__ = "Zacharias El Banna"
-__version__ = "1.0"
+__version__ = "1.1"
 __status__ = "Production"
 
 from sys import argv, exit, path as syspath
@@ -17,13 +17,12 @@ syspath.append('/usr/local/sbin')
 from Munin import muninDiscover
 from SystemFunctions import simpleArgParser
 
-if len(argv) == 1:
+args = simpleArgParser(argv)
+if len(args) < 2:
  print argv[0] + "--domain <domain/suffix> --start <start/single ip> [--end <end ip>]"
  exit(0)
 
-args = simpleArgParser(argv)
-
-start = args.get('start')
+start = args.get('start', '127.0.0.1')
 stop  = args.get('end', start)
 domain = args.get('domain','mgmt')
 

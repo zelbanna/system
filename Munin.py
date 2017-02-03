@@ -143,6 +143,7 @@ def muninCheckHost(ahostname):
 # Output files must exist (!)
 
 def muninDiscover(astart, astop, adomain, ahandler = '127.0.0.1'):
+ print "MuninDiscover: " + astart + " -> " + astop + ", for domain '" + adomain + "', handler:" + ahandler 
  hostsmods = '/var/tmp/hosts.conf'
  muninadds = '/var/tmp/munin.conf'
  muninconf = '/etc/munin/munin.conf'
@@ -157,7 +158,7 @@ def muninDiscover(astart, astop, adomain, ahandler = '127.0.0.1'):
   f.write("#!/bin/bash\n")
 
  with open(hostsmods, 'w') as f:
-  f.write("####### HOSTS ERRORS #######\n")
+  f.write("####### HOSTS FOUND  #######\n")
 
  ############### Traverse IPs #################
 
@@ -171,9 +172,10 @@ def muninDiscover(astart, astop, adomain, ahandler = '127.0.0.1'):
   dnsname  = found[1].split('.')[0].lower()
   snmpname = found[2].split('.')[0].lower()
 
-  if not adomain in fqdn or dnsname == "unknown":
-   with open(hostsmods, 'a') as hosts:
-    hosts.write('# IP:' + ip + '\tDNS:' + dnsname + '\tSNMP' + snmpname + "\n")
+  with open(hostsmods, 'a') as hosts:
+   hosts.write('# IP:' + ip.ljust(16) + ' DNS:' + dnsname.ljust(12) + ' FQDN:' + dnsname + "." + adomain.ljust(12) + ' SNMP:' + snmpname + "\n")
+
+  if not adomain in fqdn:
    # Truncate FQDN and add argument domain
    fqdn = fqdn.split('.')[0] + "." + adomain
 
