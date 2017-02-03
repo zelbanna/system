@@ -158,7 +158,7 @@ def muninDiscover(astart, astop, adomain, ahandler = '127.0.0.1'):
   f.write("#!/bin/bash\n")
 
  with open(hostsmods, 'w') as f:
-  f.write("####### HOSTS FOUND  #######\n")
+  f.write("################################# HOSTS FOUND  ##################################\n")
 
  ############### Traverse IPs #################
 
@@ -173,7 +173,7 @@ def muninDiscover(astart, astop, adomain, ahandler = '127.0.0.1'):
   snmpname = found[2].split('.')[0].lower()
 
   with open(hostsmods, 'a') as hosts:
-   hosts.write('# IP:' + ip.ljust(16) + ' DNS:' + dnsname.ljust(12) + ' FQDN:' + dnsname + "." + adomain.ljust(12) + ' SNMP:' + snmpname + "\n")
+   hosts.write("# {:<5} IP: {:<16} DNS:{:<12} FQDN:{:<16} SNMP:{}\n".format(str(dnsname == snmpname), ip, dnsname, dnsname + "." + adomain, snmpname))
 
   if not adomain in fqdn:
    # Truncate FQDN and add argument domain
