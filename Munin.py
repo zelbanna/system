@@ -22,7 +22,7 @@ __version__ = "1.2"
 __status__ = "Production"
 
 from netsnmp import VarList, Varbind, Session       
-from SystemFunctions import pingOS, sysIPs2Range
+from SystemFunctions import pingOS, sysIPs2Range, sysLogDebug
 from JRouter import JRouter
 from socket import gethostbyaddr
 from os import chmod
@@ -187,15 +187,18 @@ def muninDiscover(astart, astop, adomain, ahandler = '127.0.0.1'):
     munin.write('ln -s /usr/local/sbin/plugins/snmp__esxi    /etc/munin/plugins/snmp_' + fqdn + '_esxi\n')
 
    if found[3] == "Juniper" and not found[5] == "other":
-    jdev = JRouter(found[0])
+    if not fqdn in muninconfdict:
+     muninAppendConf(muninconf, fqdn, ahandler, "no")
+    munin.write('ln -s /usr/local/sbin/plugins/snmp__' + found[5] + ' /etc/munin/plugins/snmp_'+ fqdn +'_' + found[5] +'\n')
+    munin.write('ln -s /usr/share/munin/plugins/snmp__uptime /etc/munin/plugins/snmp_' + fqdn + '_uptime\n')
+    munin.write('ln -s /usr/share/munin/plugins/snmp__users  /etc/munin/plugins/snmp_' + fqdn + '_users\n')
+
+    jdev = JRouter(ip)
     if jdev.connect():
-     if not fqdn in muninconfdict:
-      muninAppendConf(muninconf, fqdn, ahandler, "no")
-     munin.write('ln -s /usr/local/sbin/plugins/snmp__' + found[5] + ' /etc/munin/plugins/snmp_'+ fqdn +'_' + found[5] +'\n')
-     munin.write('ln -s /usr/share/munin/plugins/snmp__uptime /etc/munin/plugins/snmp_' + fqdn + '_uptime\n')
-     munin.write('ln -s /usr/share/munin/plugins/snmp__users  /etc/munin/plugins/snmp_' + fqdn + '_users\n')
-     for ifd in jdev.getUpInterfaces():
-      munin.write('ln -s /usr/share/munin/plugins/snmp__if_   /etc/munin/plugins/snmp_' + fqdn + '_if_'+ ifd[2] +'\n')
+     activeinterfaces = jdev.getUpInterfaces()
      jdev.close()
     else:
-     print found[1],"impossible to connect!"
+     print ip,"impossible to connect! [",found[1],"]"
+    
+    for ifd in activeinterfaces:
+     munin.write('ln -s /usr/share/munin/plugins/snmp__if_   /etc/munin/plugins/snmp_' + fqdn + '_if_'+ ifd[2] +'\n')
