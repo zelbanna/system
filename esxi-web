@@ -7,7 +7,7 @@ Application for web based ESXi operations
 
 """
 __author__ = "Zacharias El Banna"
-__version__ = "1.1"
+__version__ = "1.2"
 __status__ = "Production"
 
 import cgi 
@@ -16,31 +16,17 @@ from sys import stdout, path as syspath
 syspath.append('/usr/local/sbin')
 from ESXi import ESXi
 
-print "Content-Type: text/html\r\n"
-print """<HTML><META HTTP-EQUIV='refresh' CONTENT='240'>
+print """Content-Type: text/html\r\n"
+<HTML><META HTTP-EQUIV='refresh' CONTENT='240'>
 <style>
-
-table {
- border-collapse: collapse;
-}
- 
-th {
- border: 1px solid black;
- display: table-cell;
- vertical-align: middle;
- font-weight: bold;
- text-align: center
-}
-
-table#varannan tr:nth-child(even) {
- background-color: #FFFFFF;
-}
-table#varannan tr:nth-child(odd) {
- background-color: #F3F3F3;
-}
-              
+table { border-collapse: collapse; }
+th { border: 1px solid black; display: table-cell; vertical-align: middle; font-weight: bold; text-align: center }
+table#varannan tr:nth-child(even) { background-color: #FFFFFF; } 
+table#varannan tr:nth-child(odd) {  background-color: #F3F3F3; }                
 </style>
-<BODY BGCOLOR='#F3F3F3'>"""
+<BODY BGCOLOR='#F3F3F3'>
+<HEAD><TITLE>ESXi Operations</TITLE></HEAD>
+"""
 stdout.flush()
 
 form   = cgi.FieldStorage()
@@ -50,7 +36,6 @@ nstate = form.getvalue('next-state',None)
 vmid   = form.getvalue('vmid','-1')
 esxi   = ESXi(host)
 
-print "<HEAD><TITLE>ESXi Operations</TITLE></HEAD>"
 print "Host: " + host + "." + domain
 
 if nstate:
