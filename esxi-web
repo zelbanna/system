@@ -1,39 +1,109 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-
-"""Program docstring.
-
-Application back-end for ESXi.php (should be cgi ?!)
-
-"""
-__author__ = "Zacharias El Banna"
-__version__ = "1.1"
-__status__ = "Production"
-
-from sys import path as syspath
+import cgi 
+from subprocess import check_call, check_output
+from sys import stdout, path as syspath
 syspath.append('/usr/local/sbin')
-from ESXi import ESXi, argv
+from ESXi import ESXi
 
-esxi = ESXi(argv[1])
-if len(argv) == 2:
- statelist = esxi.loadVMs()
- for vm in statelist:
-  print "<tr><td>" + vm[1] + "</td><td>"
-  basestr = "<A HREF=esxi.php?host=" + argv[1] + "&iid=" + vm[0] + "&next-state="
-  if vm[2] == "1":
-   print basestr + "off><IMG SRC=images/shutdown.png></A>"
-   print basestr + "hardoff><IMG SRC=images/poweroff.png></A>"
-   print basestr + "reboot><IMG SRC=images/reboot.png></A>"
-  elif vm[2] == "3":
-   print basestr + "resume><IMG SRC=images/start.png></A>"
-  else:
-   print basestr + "on><IMG SRC=images/start.png></A>"
-  print "</td></tr>"
-elif len(argv) == 3:
- esxi.sshConnect()
- output = esxi.sshSend(argv[2])
- if not output == "":
-  print output 
- esxi.sshClose()
-else:
- print argv[0] + " <esxi-host> [<command>]"
+print "Content-Type: text/html\r\n"
+print """<HTML><META HTTP-EQUIV='refresh' CONTENT='240'>
+<style>
+
+table {
+ border-collapse: collapse;
+}
+ 
+th {
+ border: 1px solid black;
+ display: table-cell;
+ vertical-align: middle;
+ font-weight: bold;
+ text-align: center
+}
+
+table#varannan tr:nth-child(even) {
+ background-color: #FFFFFF;
+}
+table#varannan tr:nth-child(odd) {
+ background-color: #F3F3F3;
+}
+              
+</style>
+<BODY BGCOLOR='#F3F3F3'>"""
+stdout.flush()
+
+form   = cgi.FieldStorage()
+host   = form.getvalue('host','esxi1')
+domain = form.getvalue('domain','mgmt')
+nstate = form.getvalue('next-state',None)
+vmid   = form.getvalue('vmid','-1')
+esxi   = ESXi(host)
+
+print "<HEAD>Host: " + host + "." + domain + "</HEAD>"
+
+if nstate:
+ if "vm-" in nstate:
+  vmop = nstate.split('-')[1]
+  print " [op:" + vmop + " on vmid:" + vmid + "]"
+  esxi.sshConnect()
+  esxi.sshSend("vim-cmd vmsvc/power." + vmop + " " + vmid)
+  esxi.sshClose()
+ elif nstate == 'poweroff':
+  esxi.sshConnect()
+  esxi.sshSend("poweroff")
+  esxi.sshClose()
+  print " [powering off host]"
+ elif nstate == 'vmsoff':
+  check_call("/usr/local/sbin/esxi-shutdown  " + host + " &", shell=True)
+  print " [safely shutting down all VMs, reload to follow progress]"
+ elif nstate == 'picture':
+  print "<BR><IMG SRC='images/" + host + ".jpg'>"
+
+#
+# ESXi OPs Menu
+#
+baselink = "<A HREF=esxi-web.py?host={0}&domain={1}".format(host,domain)
+
+print "<CENTER><TABLE BORDER=0><TR>"
+print "<TD><A HREF='http://{0}-ipmi.{1}/index.html' target=esxi_ipmi>IPMI</A> / <A HREF='http://{0}-amt.{1}:16992'>AMT</A></TD>".format(host,domain)
+print "<TD>" + baselink + "&next-state=poweroff>ESXi SHUTDOWN</A>!!</TD>"
+print "<TD>" + baselink + "&next-state=vmsoff>VMs SHUTDOWN</A></TD>"
+print "<TD>" + baselink + "&next-state=picture>PIC</A></TD>"
+print "<TD><A HREF=https://" + host + "." + domain + "/ui target=esxi_cont>UI</A></TD>"
+print "<TD>" + baselink + ">RELOAD</A></TD>"
+print "</TR></TABLE></CENTER>"
+print "<HR>"
+
+try:
+ logs = check_output("tail -n 10 /var/log/network/"+ host +".operations.log | tac", shell=True)
+ print "<PRE>"
+ print logs.strip()
+ print "</PRE>"
+except:
+ pass 
+
+#
+# VM OPs Menu
+#
+print "<HR>"
+print "<TABLE BORDER=0 id='varannan'><TH>VM</TH><TH>Operations</TH>"
+statelist = esxi.loadVMs()
+for vm in statelist:
+ if vm[0] == vmid:
+  print "<TR><TD><B>" + vm[1] + "</B></TD><TD>"
+ else:
+  print "<TR><TD>" + vm[1] + "</TD><TD>"
+ basestr = baselink + "&vmid=" + vm[0] + "&next-state=vm-"
+ if vm[2] == "1":
+  print basestr + "shutdown><IMG SRC=images/shutdown.png></A>"
+  print basestr + "off><IMG SRC=images/poweroff.png></A>"
+  print basestr + "reboot><IMG SRC=images/reboot.png></A>"
+ elif vm[2] == "3":
+  print basestr + "suspendResume><IMG SRC=images/start.png></A>"
+ else:
+  print basestr + "on><IMG SRC=images/start.png></A>"
+ print "</TD></TR>"
+
+print "</TABLE>"
+print "</BODY></HTML>"
