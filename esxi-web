@@ -1,5 +1,15 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+"""Program docstring.
+
+Application for web based ESXi operations
+
+
+"""
+__author__ = "Zacharias El Banna"
+__version__ = "1.1"
+__status__ = "Production"
+
 import cgi 
 from subprocess import check_call, check_output
 from sys import stdout, path as syspath
@@ -40,7 +50,8 @@ nstate = form.getvalue('next-state',None)
 vmid   = form.getvalue('vmid','-1')
 esxi   = ESXi(host)
 
-print "<HEAD>Host: " + host + "." + domain + "</HEAD>"
+print "<HEAD><TITLE>ESXi Operations</TITLE></HEAD>"
+print "Host: " + host + "." + domain
 
 if nstate:
  if "vm-" in nstate:
@@ -63,15 +74,17 @@ if nstate:
 #
 # ESXi OPs Menu
 #
-baselink = "<A HREF=esxi-web.py?host={0}&domain={1}".format(host,domain)
+baselink = "<A HREF=esxi-web.cgi?host={0}&domain={1}".format(host,domain)
 
 print "<CENTER><TABLE BORDER=0><TR>"
-print "<TD><A HREF='http://{0}-ipmi.{1}/index.html' target=esxi_ipmi>IPMI</A> / <A HREF='http://{0}-amt.{1}:16992'>AMT</A></TD>".format(host,domain)
-print "<TD>" + baselink + "&next-state=poweroff>ESXi SHUTDOWN</A>!!</TD>"
-print "<TD>" + baselink + "&next-state=vmsoff>VMs SHUTDOWN</A></TD>"
-print "<TD>" + baselink + "&next-state=picture>PIC</A></TD>"
-print "<TD><A HREF=https://" + host + "." + domain + "/ui target=esxi_cont>UI</A></TD>"
-print "<TD>" + baselink + ">RELOAD</A></TD>"
+print "<TD>SHUTDOWN:</TD>"
+print "<TD>" + baselink + "&next-state=poweroff>[Host</A>&nbsp;</TD>"
+print "<TD>|</TD>"
+print "<TD>" + baselink + "&next-state=vmsoff>All VMs]</A>&nbsp;</TD>"
+print "<TD>" + baselink + "&next-state=picture>Picture</A>&nbsp;</TD>"
+print "<TD><A HREF=https://" + host + "." + domain + "/ui target=esxi_cont>UI</A>&nbsp;</TD>"
+print "<TD><A HREF='http://{0}-ipmi.{1}/index.html' target=esxi_ipmi>IPMI</A> / <A HREF='http://{0}-amt.{1}:16992'>AMT</A>&nbsp;</T>".format(host,domain)
+print "<TD>" + baselink + ">Refresh</A></TD>"
 print "</TR></TABLE></CENTER>"
 print "<HR>"
 
