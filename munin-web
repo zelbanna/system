@@ -1,0 +1,66 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+"""Program docstring.
+
+Application to format munin conf entries to html or modify an entry
+- assume munin.conf rw for www-data (!)
+
+"""
+__author__ = "Zacharias El Banna"
+__version__ = "1.0"
+__status__ = "Production"
+
+import cgi
+import cgitb
+cgitb.enable(display=1, logdir="/tmp/")
+
+from sys import stdout, path as syspath
+syspath.append('/usr/local/sbin')
+from Munin import muninLoadConf, muninSetConf, muninDiscover
+
+print """Content-Type: text/html\r\n
+<HTML>
+<style>
+table { border-collapse: collapse; }
+th { border: 1px solid black; display: table-cell; vertical-align: middle; font-weight: bold; text-align: center }
+table#varannan tr:nth-child(even) { background-color: #FFFFFF; }
+table#varannan tr:nth-child(odd) {  background-color: #F3F3F3; }                
+</style>
+<BODY BGCOLOR='#F3F3F3'>
+<HEAD><TITLE>Munin Operations</TITLE></HEAD>
+"""
+stdout.flush()
+
+form  = cgi.FieldStorage()
+op    = form.getvalue('op','view')
+
+if op == "discover":
+ start = form.getvalue('start',None)
+ end   = form.getvalue('end', None)
+ domain= form.getvalue('domain', None)
+ if start and end and domain:
+  print "<B>Starting new discovery</B>"
+  print "Verify results in default file locations!"
+  muninDiscover(start, end, domain)
+else:
+ node  = form.getvalue('node',None)
+ state = form.getvalue('state',None)
+
+ if op == "view" and node:
+  munindict = muninLoadConf('/etc/munin/munin.conf')
+  print "<PRE>" + node + " update is set to [" + munindict.get(node)[1] + "] and handler is [" + munindict.get(node)[0] + "]</PRE>"
+ else:
+  if op == "config" and node and state:
+   nstate = "yes" if state == "no" else "no"
+   muninSetConf('/etc/munin/munin.conf', node, nstate)
+
+  munindict = muninLoadConf('/etc/munin/munin.conf')
+  keys = munindict.keys()
+  keys.sort()
+  print "<TABLE id=varannan><TR><TH>Node</TH><TH>Update</TH></TR>"
+  for entry in keys:
+   print "<TR><TD><A HREF='munin-web.cgi?op=view&node=" + entry +"'>" + entry + "</A></TD>"
+   print "<TD><A HREF='munin-web.cgi?op=config&node=" + entry + "&state=" + munindict.get(entry)[1] + "'>" +  munindict.get(entry)[1] + "</A></TD></TR>"
+  print "</TABLE>"
+
+print "</BODY></HTML>"
