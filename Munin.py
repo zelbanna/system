@@ -15,15 +15,16 @@ Exports:
 - muninAppendConf
 - muninCheckHost
 - muninDiscover
+- Munin
 
 """  
 __author__ = "Zacharias El Banna"
-__version__ = "1.2"
+__version__ = "1.4"
 __status__ = "Production"
 
-from netsnmp import VarList, Varbind, Session       
 from SystemFunctions import pingOS, sysIPs2Range, sysLogDebug
 from JRouter import JRouter
+from netsnmp import VarList, Varbind, Session
 from socket import gethostbyaddr
 from os import chmod
 

@@ -10,10 +10,10 @@ __author__ = "Zacharias El Banna"
 __version__ = "3.2"
 __status__ = "Production"
 
-from subprocess import check_output, check_call
-from time import sleep
 from PasswordContainer import loopia_username, loopia_password, loopia_domain
 from SystemFunctions import sysCheckResults, sysLogMsg, sysFileReplace
+from subprocess import check_output, check_call
+from time import sleep
 from socket import gethostbyname
 
 ################################ LOOPIA DNS ###################################

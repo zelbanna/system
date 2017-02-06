@@ -11,14 +11,13 @@ IPMI interworking module
 
 """
 __author__ = "Zacharias El Banna"                     
-__version__ = "3.1"
+__version__ = "3.2"
 __status__ = "Production"
-
-from sys import argv, exit, path as syspath
-from subprocess import check_output, check_call
 
 from PasswordContainer import ipmi_username, ipmi_password
 from SystemFunctions import sysCheckResults, sysStr2Hex
+from subprocess import check_output, check_call
+
 
 ################################### IPMI #######################################
 

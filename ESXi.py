@@ -7,17 +7,13 @@ The ESXi interworking module
 
 """
 __author__ = "Zacharias El Banna"
-__version__ = "3.5"
+__version__ = "3.7"
 __status__ = "Production"
 
-from sys import argv, exit, stdout, path as syspath
-from os import getpid, remove, path as ospath
-from time import sleep, strftime, localtime
-from select import select
-
 from PasswordContainer import esxi_username, esxi_password
-from SystemFunctions import sysDebug, sysSetDebug
+from SystemFunctions import sysLogMsg
 from netsnmp import VarList, Varbind, Session
+from select import select
 
 ########################################### ESXi ############################################
 #
@@ -37,9 +33,7 @@ class ESXi(object):
   return str(self.hostname) + " SNMP_Community:" + str(self.community) + " SSHclient:" + str(self.sshclient) + " Backuplist:" + str(self.backuplist)
    
  def log(self,amsg):
-  if sysDebug: print "Log: " + amsg
-  with open("/var/log/network/" + self.hostname + ".operations.log", 'a') as f:
-   f.write(unicode("{} ({}): {}\n".format(strftime('%Y-%m-%d %H:%M:%S', localtime()), str(getpid()).zfill(5), amsg)))
+  sysLogMsg(amsg, "/var/log/network/" + self.hostname + ".operations.log")
 
  def createLock(self,atime):
   sysLockPidFile("/tmp/esxi." + self.hostname + ".vm.pid",atime)
@@ -56,7 +50,8 @@ class ESXi(object):
    # self.sshclient.get_transport().set_log_channel(self.hostname)
   except AuthenticationException:
    print "DEBUG: Authentication failed when connecting to %s" % self.hostname
-   exit(1)
+   return False
+  return True
 
  def sshSend(self,amessage):
   if not self.sshclient == None:

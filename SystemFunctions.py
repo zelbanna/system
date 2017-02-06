@@ -38,7 +38,6 @@ from socket import inet_ntoa, inet_aton
 ################################# Generics ####################################
 
 sysDebug = False
-sysLogFile = '/var/log/system/system.log'
 
 def sysSetDebug(astate):
  global sysDebug
@@ -68,13 +67,9 @@ def pingOS(ip):
 def sysCheckResults(test):
  return "success" if test else "failure"
 
-def sysSetLog(alogfile):
- global sysLogFile
- sysLogFile = alogfile
-    
-def sysLogMsg(amsg):
+def sysLogMsg(amsg, alog='/var/log/system/system.log'):
  sysLogDebug(amsg)
- with open(sysLogFile, 'a') as f:
+ with open(alog, 'a') as f:
   f.write(unicode("{} : {}\n".format(strftime('%Y-%m-%d %H:%M:%S', localtime()), amsg)))
 
 #

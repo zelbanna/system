@@ -10,13 +10,13 @@ Junos Router Base Class
 
 """
 __author__ = "Zacharias El Banna"
-__version__ = "4.2"
+__version__ = "4.3"
 __status__ = "Production"
 
-from lxml import etree
 from PasswordContainer import netconf_username, netconf_password
-from netsnmp import VarList, Varbind, Session
 from SystemFunctions import sysLogMsg
+from netsnmp import VarList, Varbind, Session
+from lxml import etree
 
 ################################ JUNOS Object #####################################
 #
