@@ -27,7 +27,7 @@ Generic Functions, exports:
 
 """
 __author__ = "Zacharias El Banna"                     
-__version__ = "4.2"
+__version__ = "4.3"
 __status__ = "Production"
 
 from os import remove, path as ospath, system
@@ -38,7 +38,7 @@ from socket import inet_ntoa, inet_aton
 ################################# Generics ####################################
 
 sysDebug = False
-sysLogFile = '/var/log/system/network.functions.log'
+sysLogFile = '/var/log/system/system.log'
 
 def sysSetDebug(astate):
  global sysDebug
