@@ -3,13 +3,14 @@
 
 """Module docstring.
 
-Junos Router
-
-- SRX functions should be overloaded on top of JRouter
+Junos Router Base Class
+- JRouter
+- SRX functions
+- EX functions
 
 """
 __author__ = "Zacharias El Banna"
-__version__ = "4.1"
+__version__ = "4.2"
 __status__ = "Production"
 
 from lxml import etree
@@ -32,6 +33,7 @@ class JRouter(object):
   self._type = ""
   self._model = ""
   self._version = ""
+  self._interfacesname = {}
  
  def __str__(self):
   return str(self._router) + " Type:" + self._type + " Model:" + self._model + " Version:" + self._version
@@ -68,12 +70,21 @@ class JRouter(object):
  def getType(self):
   return self._type
 
+ def checkInterfacesName(self):
+  interfaces = self._router.rpc.get_interface_information(descriptions=True)
+  for interface in interfaces:
+   ifd         = interface.find("name").text
+   description = interface.find("description").text
+   self._interfacesname[ifd] = description
+
+ def getInterfaceName(self, aifl):
+  return self._interfacesname.get(aifl.split('.')[0],None)
+
  def getUpInterfaces(self):
-  # Could have used (terse=True) but that doesn't give SNMP index for munin...
   interfaces = self._router.rpc.get_interface_information()
   result = []
-  for intf in interfaces:
-   status = map((lambda pos: intf[pos].text), [0,2,4])
+  for ifd in interfaces:
+   status = map((lambda pos: ifd[pos].text), [0,2,4,5])
    if status[0].split('-')[0] in [ 'ge', 'fe', 'xe', 'et','st0' ] and status[1] == "up":
     result.append(status)
   return result
@@ -133,7 +144,7 @@ class SRX(JRouter):
    sysLogMsg("System Error - cannot renew DHCP lease: " +str(err))
   return False
    
- def checkIPsec(self,gwname):
+ def getIPsec(self,gwname):
   try:
    # Could actually just look at "show security ike security-associations" - len of that result
    # is the number of ikes (not tunnels though) with GW etc
@@ -141,10 +152,10 @@ class SRX(JRouter):
    self.tunnels = int(self._router.rpc.get_security_associations_information()[0].text)
    ike = self._router.rpc.get_config(filter_xml=etree.XML('<configuration><security><ike><gateway></gateway></ike></security></configuration>'))
    address = ike.xpath(".//gateway[name='" + gwname + "']/address")
-   return False if len(address) == 0 else address[0].text
+   return address[0].text, self.tunnels
   except Exception as err:
-   sysLogMsg("System Error - reading IPsec data: " + str(err))
-  return False
+   sysLogMsg("System Error - getting IPsec data: " + str(err))
+   return None, self.tunnels
 
  def setIPsec(self,gwname,oldip,newip):
   try:
@@ -156,3 +167,42 @@ class SRX(JRouter):
    return False
   return True
 
+################################ EX Object #####################################
+
+class EX(JRouter):
+
+ def __init__(self,hostname):
+  JRouter.__init__(self, hostname)
+  self._type = "EX"
+  self._style  = None
+  self._interfacenames = {}
+
+ def __str__(self):
+  return JRouter.__str__(self) + " Style:" + str(self._style)
+
+ #
+ # should prep for ELS only and send "instance = 'default-instance'" - then id could be retrieved too
+ # since grouping is different
+ #
+ def getSwitchTable(self):
+  fdblist = []
+  try:
+   swdata = self._router.rpc.get_ethernet_switching_table_information()
+   if swdata.tag == "l2ng-l2ald-rtb-macdb":
+    self._style = "ELS"
+    for entry in swdata[0].iter("l2ng-mac-entry"):
+     vlan = entry.find("l2ng-l2-mac-vlan-name").text
+     mac  = entry.find("l2ng-l2-mac-address").text     
+     interface = entry.find("l2ng-l2-mac-logical-interface").text
+     fdblist.append([ vlan, mac, interface, self.getInterfaceName(interface) ])
+   elif swdata.tag == "ethernet-switching-table-information":
+    self._style = "Legacy"
+    for entry in swdata[0].iter("mac-table-entry"):
+     vlan = entry.find("mac-vlan").text
+     mac  = entry.find("mac-address").text
+     interface = entry.find(".//mac-interfaces").text
+     if not mac == "*" and not interface == "Router":
+      fdblist.append([ vlan, mac, interface, self.getInterfaceName(interface) ]) 
+  except Exception as err:
+   sysLogMsg("System Error - fetching FDB: " + str(err))
+  return fdblist
