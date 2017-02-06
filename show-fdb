@@ -1,0 +1,73 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+"""Program docstring.
+
+Application to lookup MACs (and IPs) from FDB, a regular switch or wirless
+
+"""
+__author__ = "Zacharias El Banna"
+__version__ = "1.0"
+__status__ = "Production"
+
+import cgi
+from sys import stdout, path as syspath
+syspath.append('/usr/local/sbin')
+
+print """Content-Type: text/html\r\n
+<HTML>
+<style>
+table { border-collapse: collapse; }
+th { border: 1px solid black; display: table-cell; vertical-align: middle; font-weight: bold; text-align: center }
+table#varannan tr:nth-child(even) { background-color: #FFFFFF; }
+table#varannan tr:nth-child(odd) {  background-color: #F3F3F3; }                
+</style>
+<BODY BGCOLOR='#F3F3F3'>
+<HEAD><TITLE>FDB Operations</TITLE></HEAD>
+"""
+stdout.flush()
+
+form = cgi.FieldStorage()
+host = form.getvalue('host',None)
+type = form.getvalue('type',None)
+
+try:
+ if host and type == 'wlc':
+  from netsnmp import Session, VarList, Varbind
+  from socket import gethostbyaddr
+  # Length of below is used to offset ip address (32) + 1 and mac base (33) + 1 
+  cssidobjs = VarList(Varbind(".1.3.6.1.4.1.14525.4.4.1.1.1.1.15"))
+  cipobjs   = VarList(Varbind(".1.3.6.1.4.1.14525.4.4.1.1.1.1.4"))
+
+  session = Session(Version = 2, DestHost = host, Community = 'public', UseNumeric = 1, Timeout = 100000, Retries = 2)
+  session.walk(cssidobjs)
+  session.walk(cipobjs)
+
+  ipdict= dict(map(lambda res: (res.tag[33:], res.val) ,cipobjs))
+  print "<TABLE ID=varannan><TH>Name</TH><TH>IP</TH><TH>MAC</TH><TH>SSid</TH>"
+  for res in cssidobjs:
+   macbase=res.tag[34:]
+   mac = (macbase+"."+res.iid).split(".")
+   mac = ":".join(map(lambda x: hex(int(x))[2:],mac))
+   try:
+    clientname = gethostbyaddr(ipdict[macbase])[0]
+   except:
+    clientname = "unknown"
+   print "<TR><TD>" + clientname + "&nbsp;</TD><TD>" + ipdict.get(macbase) + "&nbsp;</TD><TD>" + mac + "&nbsp;</TD><TD>" + res.val + "</TD></TR>"
+  print "</TABLE>"
+ elif host and type == 'switch':
+  from JRouter import EX
+  switch = EX(host)
+  switch.connect()
+  switch.checkInterfacesName()
+  fdb = switch.getSwitchTable()
+  switch.close()
+  print "<TABLE ID=varannan><TH>VLAN</TH><TH>MAC</TH><TH>Interface</TH><TH>Interface Description</TH>"  
+  for entry in fdb:
+   print "<TR><TD>" + "&nbsp;</TD><TD>".join(entry) + "</TD></TR>\n"
+  print "</TABLE>"
+ else:
+  print "show-fdb.cgi takes two arguments, host (device) and type (switch/wlc)"
+except Exception as exception_error:
+ print "<B>show-dgb.cgi issue: "+ str(exception_error) + "</B>"
+
+print "</BODY></HTML>"
