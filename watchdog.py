@@ -9,7 +9,7 @@ Watchdog for system settings
 
 """
 __author__ = "Zacharias El Banna"                     
-__version__ = "3.2"
+__version__ = "3.3"
 __status__ = "Production"
 
 from socket import gethostbyname
@@ -79,10 +79,10 @@ try:
 
     # Check IPsec, can we reach the hub?  
     if not gw == "":
-     address = srx.checkIPsec(gwname)
+     address, tunnels = srx.getIPsec(gwname)
 
      # Assume if one tunnel is up it's the hub 
-     if srx.tunnels == 0:
+     if tunnels == 0:
       # no tunnels active
       gwip = gethostbyname(gw + getLoopiaSuffix())
       # check configured gw ip, still ok - try to ping, otherwise reconf 
