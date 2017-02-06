@@ -7,13 +7,10 @@ Application for web based ESXi operations
 
 """
 __author__ = "Zacharias El Banna"
-__version__ = "1.3"
+__version__ = "2.0"
 __status__ = "Production"
 
 import cgi 
-import cgitb
-cgitb.enable(display=1, logdir="/tmp/")
-
 from subprocess import check_call, check_output
 from sys import stdout, path as syspath
 syspath.append('/usr/local/sbin')

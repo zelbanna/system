@@ -7,13 +7,10 @@ Application to format munin conf entries to html or modify an entry
 
 """
 __author__ = "Zacharias El Banna"
-__version__ = "1.0"
+__version__ = "2.0"
 __status__ = "Production"
 
 import cgi
-import cgitb
-cgitb.enable(display=1, logdir="/tmp/")
-
 from sys import stdout, path as syspath
 syspath.append('/usr/local/sbin')
 from Munin import muninLoadConf, muninSetConf, muninDiscover
