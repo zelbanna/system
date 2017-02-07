@@ -14,12 +14,11 @@ syspath.append('/usr/local/sbin')
 from WWW import Web              
 
 web    = Web()
-web.printCGIHeader('ESXi Operations','grey')
 form   = web.getForm()                
 host = form.getvalue('host',None)
 type = form.getvalue('type',None)
-# host = "wlc1.mgmt"
-# type = "wlc"
+
+web.printCGIHeader('ESXi Operations','grey')
 
 try:
  if host and type == 'wlc':

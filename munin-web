@@ -15,11 +15,11 @@ syspath.append('/usr/local/sbin')
 from Munin import muninLoadConf, muninSetConf, muninDiscover
 from WWW import Web              
 
-web    = Web()
-web.printCGIHeader('Munin Operations','grey')
+web  = Web()
+form = web.getForm()
+op   = form.getvalue('op','view')
 
-form   = web.getForm()
-op    = form.getvalue('op','view')
+web.printCGIHeader('Munin Operations','grey')
 
 if op == "discover":
  start = form.getvalue('start',None)
