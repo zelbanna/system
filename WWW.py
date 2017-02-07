@@ -12,6 +12,7 @@ __status__ = "Production"
 
 import cgi
 from sys import stdout
+import urllib
 
 ################################### Web Items #######################################
 
@@ -34,3 +35,11 @@ class Web(object):
  def printCGIFooter(self):
   print "</BODY></HTML>"
 
+ def printTableLine(self, acolspan=1):
+  print "<TR><TD COLSPAN={}><HR></TD></TR>".format(str(acolspan))
+
+ def printURL(self, aurl):
+  sock = urllib.urlopen(aurl)
+  html = sock.read()
+  sock.close()
+  print html

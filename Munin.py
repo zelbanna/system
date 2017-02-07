@@ -40,11 +40,13 @@ class Munin(object):
  def __str__(self):
   return "Config: {0} Libdir: {1}".format(self._config,self._libdir)
 
- def printHtmlTd(self, asource, acolspan="1"):
+ def printHtmlTd(self, asource, acolspan=1):
   stop  = int(time())-300
   start = stop - 24*3600 
-  print "<TD COLSPAN="+acolspan+"><A HREF='munin-cgi/munin-cgi-html/static/dynazoom.html?cgiurl_graph=/munin-cgi/munin-cgi-graph&plugin_name=" + asource + "&size_x=800&size_y=400&start_epoch=" + str(start) + "&stop_epoch=" + str(stop) +"' target=management_cont>"
-  print "<IMG width=399 height=224 SRC='/munin-cgi/munin-cgi-graph/" + asource +"-day.png' /></A></TD>"
+  print "<TD COLSPAN={}>".format(str(acolspan))
+  print "<A HREF='munin-cgi/munin-cgi-html/static/dynazoom.html?"
+  print "cgiurl_graph=/munin-cgi/munin-cgi-graph&plugin_name={0}&size_x=800&size_y=400&start_epoch={1}&stop_epoch={2}' target=management_cont>".format(asource,str(start),str(stop))
+  print "<IMG width=399 height=224 SRC='/munin-cgi/munin-cgi-graph/{}-day.png' /></A></TD>".format(asource)
 
 ######################### Load munin.conf entries ########################
 
@@ -54,6 +56,8 @@ def muninLoadConf(amuninconf):
   foundall = {}
   found = []
   
+  # Modify for arbitrary length!
+  #
   for linen in munin:
    line = linen.strip()
    if len(found) == 0 and line.startswith("[") and line.endswith("]"):

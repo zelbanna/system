@@ -87,7 +87,7 @@ print "</TR>"
 #
 
 print "<TR>"
-print "<TD><TABLE WIDTH=390 BORDER=0 id='varannan'><TH>VM</TH><TH WIDTH=100>Operations</TH>"
+print "<TD><TABLE WIDTH=390 BORDER=0 id='varannan'><TR><TH>VM</TH><TH WIDTH=100>Operations</TH></TR>"
 print "<TR><TD><B>SHUTDOWN ALL VMs</B></TD><TD><CENTER><A HREF={0}=vmsoff><IMG SRC=images/shutdown.png></A></CENTER></TD></TR>".format(baselink)
 statelist = esxi.loadVMs()
 for vm in statelist:
@@ -111,7 +111,7 @@ print "</TD>"
 print "<TD COLSPAN=2 id='top'>"
 try:
  logs = check_output("tail -n 10 /var/log/network/"+ host +".operations.log | tac", shell=True)
- print "<TABLE BORDER=0><TH>Log Entry</TH><TR id='med'><TD>" + logs.replace('\n','<BR>') + "</TD></TR></TABLE>"
+ print "<TABLE BORDER=0><TR><TH>Log Entry</TH></TR><TR id='med'><TD>" + logs.replace('\n','<BR>') + "</TD></TR></TABLE>"
 except:
  print "<CENTER><B>Logs Error</B></CENTER>" 
 print "</TD>"
