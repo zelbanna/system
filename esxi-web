@@ -27,7 +27,7 @@ fqdn   = host + "." + domain
 nstate = form.getvalue('next-state',None)
 vmid   = form.getvalue('vmid','-1')
 esxi   = ESXi(fqdn)
-baselink = "<A HREF=esxi-web.cgi?host={0}&domain={1}&next-state".format(host,domain)
+baselink = "esxi-web.cgi?host={0}&domain={1}&next-state".format(host,domain)
 
 print "<TABLE cellpadding='8'>"
 
@@ -70,14 +70,15 @@ else:
  
 print "</TR>"
 print "<TR id='medsolid'><TD COLSPAN=3><CENTER>"
-print "{0}=poweroff>Shutdown</A>&nbsp;-&nbsp;{0}=picture>Picture</A>&nbsp;".format(baselink)
+print "<A HREF={0}=poweroff>Shutdown</A>&nbsp;".format(baselink)
+print "<A HREF={0}=picture>Picture</A>&nbsp;".format(baselink)
 print "<A HREF=https://{0}/ui target=esxi_cont>UI</A>&nbsp;".format(fqdn)
 kvmtype = esxi.getKVMType('ipmi')
 if kvmtype == "amt":
  print "<A HREF=http://{0}-{2}.{1}:16992 target=esxi_kvm>{3}</A>&nbsp;".format(host,domain,kvmtype,kvmtype.upper())
 else:
  print "<A HREF=http://{0}-{2}.{1}/index.html target=esxi_kvm>{3}</A>&nbsp;".format(host,domain,kvmtype,kvmtype.upper())
-print "{0}=refresh>Refresh</A>".format(baselink)
+print "<A HREF={0}=refresh>Refresh</A>".format(baselink)
 print "</CENTER></TD>"
 print "</TR>"
 
@@ -87,7 +88,7 @@ print "</TR>"
 
 print "<TR>"
 print "<TD><TABLE WIDTH=390 BORDER=0 id='varannan'><TH>VM</TH><TH WIDTH=100>Operations</TH>"
-print "<TR><TD><B>SHUTDOWN ALL VMs</B></TD><TD><CENTER>{0}=vmsoff><IMG SRC=images/shutdown.png></A></CENTER></TD></TR>".format(baselink)
+print "<TR><TD><B>SHUTDOWN ALL VMs</B></TD><TD><CENTER><A HREF={0}=vmsoff><IMG SRC=images/shutdown.png></A></CENTER></TD></TR>".format(baselink)
 statelist = esxi.loadVMs()
 for vm in statelist:
  if vm[0] == vmid:
@@ -96,11 +97,13 @@ for vm in statelist:
   print "<TR><TD>" + vm[1] + "</TD>"
  print "<TD><CENTER>"
  if vm[2] == "1":
-  print "{0}=vm-shutdown&vmid={1}><IMG SRC=images/shutdown.png></A>{0}=vm-off&vmid={1}><IMG SRC=images/poweroff.png></A>{0}=vm-reboot&vmid={1}><IMG SRC=images/reboot.png></A>".format(baselink,vm[0])
+  print "<A HREF={0}=vm-shutdown&vmid={1}><IMG SRC=images/shutdown.png></A>".format(baselink,vm[0])
+  print "<A HREF={0}=vm-off&vmid={1}><IMG SRC=images/poweroff.png></A>".format(baselink,vm[0])
+  print "<A HREF={0}=vm-reboot&vmid={1}><IMG SRC=images/reboot.png></A>".format(baselink,vm[0])
  elif vm[2] == "3":
-  print "{0}=vm-suspendResume&vmid={1}><IMG SRC=images/start.png></A>".format(baselink,vm[0])
+  print "<A HREF={0}=vm-suspendResume&vmid={1}><IMG SRC=images/start.png></A>".format(baselink,vm[0])
  else:
-  print "{0}=vm-on&vmid={1}><IMG SRC=images/start.png></A>".format(baselink,vm[0])
+  print "<A HREF={0}=vm-on&vmid={1}><IMG SRC=images/start.png></A>".format(baselink,vm[0])
  print "</CENTER></TD></TR>"
 print "</TABLE>"
 print "</TD>"
