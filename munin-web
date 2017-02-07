@@ -10,19 +10,15 @@ __author__ = "Zacharias El Banna"
 __version__ = "2.0"
 __status__ = "Production"
 
-import cgi
-from sys import stdout, path as syspath
+from sys import path as syspath
 syspath.append('/usr/local/sbin')
 from Munin import muninLoadConf, muninSetConf, muninDiscover
+from WWW import Web              
 
-print """Content-Type: text/html\r\n
-<HTML>
-<HEAD><TITLE>Munin Operations</TITLE><LINK REL="stylesheet" TYPE="text/css" HREF="system.css"></HEAD>
-<BODY id='grey'>
-"""
-stdout.flush()
+web    = Web()
+web.printCGIHeader('Munin Operations','grey')
 
-form  = cgi.FieldStorage()
+form   = web.getForm()
 op    = form.getvalue('op','view')
 
 if op == "discover":

@@ -10,24 +10,17 @@ __author__ = "Zacharias El Banna"
 __version__ = "2.0"
 __status__ = "Production"
 
-import cgi 
 from subprocess import check_call, check_output
-from sys import stdout, path as syspath
+from sys import path as syspath
 syspath.append('/usr/local/sbin')
 from ESXi import ESXi
 from Munin import Munin
+from WWW import Web
 
-print """Content-Type: text/html\r\n
-<HTML><META HTTP-EQUIV='refresh' CONTENT='240'>
-<HEAD>
- <TITLE>ESXi Operations</TITLE>
- <LINK REL="stylesheet" TYPE="text/css" HREF="system.css">
-</HEAD>
-<BODY id='grey'>
-"""
-stdout.flush()
+web    = Web()
+web.printCGIHeader('ESXi Operations','grey')
 
-form   = cgi.FieldStorage()
+form   = web.getForm()
 host   = form.getvalue('host','esxi1')
 domain = form.getvalue('domain','mgmt')
 nstate = form.getvalue('next-state',None)

@@ -9,21 +9,13 @@ __author__ = "Zacharias El Banna"
 __version__ = "1.0"
 __status__ = "Production"
 
-import cgi
-from sys import stdout, path as syspath
+from sys import path as syspath
 syspath.append('/usr/local/sbin')
+from WWW import Web              
 
-print """Content-Type: text/html\r\n
-<HTML>
-<HEAD>
- <TITLE>FDB Operations</TITLE>
- <LINK REL="stylesheet" TYPE="text/css" HREF="system.css">
-</HEAD>
-<BODY id='grey'>
-"""
-stdout.flush()
-
-form = cgi.FieldStorage()
+web    = Web()
+web.printCGIHeader('ESXi Operations','grey')
+form   = web.getForm()                
 host = form.getvalue('host',None)
 type = form.getvalue('type',None)
 # host = "wlc1.mgmt"
@@ -69,4 +61,4 @@ try:
 except Exception as exception_error:
  print "<B>show-dgb.cgi issue: "+ str(exception_error) + "</B>"
 
-print "</BODY></HTML>"
+web.printCGIFooter()
