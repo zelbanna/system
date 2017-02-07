@@ -7,11 +7,11 @@ The ESXi interworking module
 
 """
 __author__ = "Zacharias El Banna"
-__version__ = "3.7"
+__version__ = "4.0"
 __status__ = "Production"
 
 from PasswordContainer import esxi_username, esxi_password
-from SystemFunctions import sysLogMsg
+from SystemFunctions import sysLogMsg, sysCheckHost
 from netsnmp import VarList, Varbind, Session
 from select import select
 
@@ -22,8 +22,19 @@ from select import select
 
 class ESXi(object):
  
- def __init__(self,aesxihost):
-  self.hostname  = aesxihost
+ #
+ # Each ESXi Server has an IP and probably KVM means for out of band access.
+ # Here I assume kvm IP is reachable through DNS by adding '-' and KVM type to FQDN:
+ # <hostname>-[kvm|ipmi|amt].<domain>
+ #
+ def __init__(self,aesxihost, akvm=None):
+  fqdn = aesxihost.split('.')
+  self.hostname  = fqdn[0]
+  if len(fqdn) == 2:
+   self.domain = fqdn[1]
+  else:
+   self.domain = None
+  self.kvm = akvm
   self.sshclient = None
   self.community = "public"
   self.vmstatemap  = { "1" : "powered on", "2" : "powered off", "3" : "suspended", "powered on" : "1", "powered off" : "2", "suspended" : "3" }
@@ -34,6 +45,17 @@ class ESXi(object):
    
  def log(self,amsg):
   sysLogMsg(amsg, "/var/log/network/" + self.hostname + ".operations.log")
+
+ # Check different FQDN for KVM types
+ def getKVMType(self, adefault = None):
+  if self.kvm:
+   return self.kvm
+  elif self.domain:
+   for type in ['amt','ipmi','kvm']:
+    if sysCheckHost("{}-{}.{}".format(self.hostname,type,self.domain)):
+     self.kvm = type
+     return type
+  return adefault
 
  def createLock(self,atime):
   sysLockPidFile("/tmp/esxi." + self.hostname + ".vm.pid",atime)

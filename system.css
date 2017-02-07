@@ -23,6 +23,8 @@ th {
  vertical-align: middle;
  font-weight: bold;
  text-align: center
+ font-family: 'Courier New', serif;
+ font-size: 16px
 }
 
 tr#bigsolid {
@@ -37,9 +39,18 @@ tr#medsolid {
  font-size: 16px
 }
 
+tr#med {
+ font-family: 'Courier New', serif;
+ font-size: 16px
+}
+
 td#top {
  vertical-align: top;
  text-align: left;
+}
+
+td#mid {
+ align: center;
 }
 
 table#varannan tr:nth-child(even) {

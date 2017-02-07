@@ -7,6 +7,7 @@ Generic Functions, exports:
 
 - sysSetDebug
 - sysLogDebug
+- sysCheckHost
 - sysIP2Int
 - sysInt2IP
 - sysIPs2Range
@@ -33,7 +34,7 @@ __status__ = "Production"
 from os import remove, path as ospath, system
 from time import sleep, localtime, strftime
 from struct import pack, unpack
-from socket import inet_ntoa, inet_aton
+from socket import inet_ntoa, inet_aton, gethostbyname
 
 ################################# Generics ####################################
 
@@ -45,6 +46,13 @@ def sysSetDebug(astate):
 
 def sysLogDebug(amsg):
  if sysDebug: print "Log: " + amsg
+
+def sysCheckHost(ahost):
+ try:
+  gethostbyname(ahost)
+  return True
+ except:
+  return False
 
 def sysIP2Int(addr):
  return unpack("!I", inet_aton(addr))[0]

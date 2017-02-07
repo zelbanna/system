@@ -11,7 +11,7 @@ __version__ = "2.0"
 __status__ = "Production"
 
 from subprocess import check_call, check_output
-from sys import path as syspath
+from sys import exit, path as syspath
 syspath.append('/usr/local/sbin')
 from ESXi import ESXi
 from Munin import Munin
@@ -21,20 +21,33 @@ web    = Web()
 web.printCGIHeader('ESXi Operations','grey')
 
 form   = web.getForm()
-host   = form.getvalue('host','esxi1')
-domain = form.getvalue('domain','mgmt')
+host   = form.getvalue('host',"esxi1")
+domain = form.getvalue('domain',"stolab")
+fqdn   = host + "." + domain
 nstate = form.getvalue('next-state',None)
 vmid   = form.getvalue('vmid','-1')
-esxi   = ESXi(host)
-munin  = Munin('/etc/munin/munin.conf','/mnt/ramdisk/munin/lib/')
+esxi   = ESXi(fqdn)
+baselink = "<A HREF=esxi-web.cgi?host={0}&domain={1}&next-state".format(host,domain)
 
-print "<TABLE cellpadding='8'><TR>"
-munin.printHtmlTd("{1}/{0}.{1}/esxi_vm_info".format(host,domain))
-munin.printHtmlTd("{1}/{0}.{1}/esxi_cpu_info".format(host,domain))
-munin.printHtmlTd("{1}/{0}.{1}/esxi_mem_info".format(host,domain))
-print "</TR>"
+print "<TABLE cellpadding='8'>"
 
-print "<TR id='bigsolid'><TD>Host: "+ host + "." + domain + "</TD>"
+#
+# Maybe add munin "option" so that we can use other data sources?
+#
+if True:
+ munin  = Munin('/etc/munin/munin.conf','/mnt/ramdisk/munin/lib/')
+ print "<TR>"
+ munin.printHtmlTd("{1}/{0}/esxi_vm_info".format(fqdn,domain))
+ munin.printHtmlTd("{1}/{0}/esxi_cpu_info".format(fqdn,domain))
+ munin.printHtmlTd("{1}/{0}/esxi_mem_info".format(fqdn,domain))
+ print "</TR>"
+
+#
+# ESXi OPs menu and output
+#
+
+print "<TR id='bigsolid'>"
+print "<TD><B>Host: {}</B></TD>".format(fqdn)
 if nstate:
  if "vm-" in nstate:
   vmop = nstate.split('-')[1]
@@ -48,61 +61,59 @@ if nstate:
   esxi.sshClose()
   print "<TD COLSPAN=2>[powering off host]</TD>"
  elif nstate == 'vmsoff':
-  check_call("/usr/local/sbin/esxi-shutdown  " + host + " &", shell=True)
-  print "<TD COLSPAN=2>[safely shutting down all VMs, reload to follow progress]</TD>"
+  check_call("/usr/local/sbin/esxi-shutdown " + host + " &", shell=True)
+  print "<TD COLSPAN=2>[safely shutting down all VMs, refresh page to follow progress]</TD>"
  elif nstate == 'picture':
   print "<TD COLSPAN=2><IMG SRC='images/" + host + ".jpg'></TD>"
 else:
  print "<TD COLSPAN=2>&nbsp;</TD>"
  
-#
-# ESXi OPs Menu
-#
-print "</TR><TR id='medsolid'><TD COLSPAN=3>"
-baselink = "<A HREF=esxi-web.cgi?host={0}&domain={1}".format(host,domain)
-print "<CENTER>"
-print "SHUTDOWN: {0}=poweroff>[Host</A>&nbsp;|&nbsp;{0}=vmsoff>All VMs]</A>&nbsp;-&nbsp;{0}=picture>Picture</A>&nbsp;".format(baselink+"&next-state")
-print "<A HREF=https://{0}.{1}/ui target=esxi_cont>UI</A>&nbsp;".format(host,domain)
-print "<A HREF=http://{0}-ipmi.{1}/index.html target=esxi_ipmi>IPMI</A> / <A HREF=http://{0}-amt.{1}:16992>AMT</A>&nbsp;".format(host,domain)
-print "{}>Refresh</A>".format(baselink)
-print "</CENTER>"
-print "</TD></TR>"
+print "</TR>"
+print "<TR id='medsolid'><TD COLSPAN=3><CENTER>"
+print "{0}=poweroff>Shutdown</A>&nbsp;-&nbsp;{0}=picture>Picture</A>&nbsp;".format(baselink)
+print "<A HREF=https://{0}/ui target=esxi_cont>UI</A>&nbsp;".format(fqdn)
+kvmtype = esxi.getKVMType('ipmi')
+if kvmtype == "amt":
+ print "<A HREF=http://{0}-{2}.{1}:16992 target=esxi_kvm>{3}</A>&nbsp;".format(host,domain,kvmtype,kvmtype.upper())
+else:
+ print "<A HREF=http://{0}-{2}.{1}/index.html target=esxi_kvm>{3}</A>&nbsp;".format(host,domain,kvmtype,kvmtype.upper())
+print "{0}=refresh>Refresh</A>".format(baselink)
+print "</CENTER></TD>"
+print "</TR>"
 
 #
-# VM OPs Menu
+# VM OPs Menu and log
 #
 
-print "<TR><TD><TABLE WIDTH=390 BORDER=0 id='varannan'><TH>VM</TH><TH WIDTH=100>Operations</TH>"
+print "<TR>"
+print "<TD><TABLE WIDTH=390 BORDER=0 id='varannan'><TH>VM</TH><TH WIDTH=100>Operations</TH>"
+print "<TR><TD><B>SHUTDOWN ALL VMs</B></TD><TD><CENTER>{0}=vmsoff><IMG SRC=images/shutdown.png></A></CENTER></TD></TR>".format(baselink)
 statelist = esxi.loadVMs()
 for vm in statelist:
  if vm[0] == vmid:
-  print "<TR><TD><B>" + vm[1] + "</B></TD><TD>"
+  print "<TR><TD><B>" + vm[1] + "</B></TD>"
  else:
-  print "<TR><TD>" + vm[1] + "</TD><TD>"
- basestr = baselink + "&vmid=" + vm[0] + "&next-state=vm-"
+  print "<TR><TD>" + vm[1] + "</TD>"
+ print "<TD><CENTER>"
  if vm[2] == "1":
-  print basestr + "shutdown><IMG SRC=images/shutdown.png></A>"
-  print basestr + "off><IMG SRC=images/poweroff.png></A>"
-  print basestr + "reboot><IMG SRC=images/reboot.png></A>"
+  print "{0}=vm-shutdown&vmid={1}><IMG SRC=images/shutdown.png></A>{0}=vm-off&vmid={1}><IMG SRC=images/poweroff.png></A>{0}=vm-reboot&vmid={1}><IMG SRC=images/reboot.png></A>".format(baselink,vm[0])
  elif vm[2] == "3":
-  print basestr + "suspendResume><IMG SRC=images/start.png></A>"
+  print "{0}=vm-suspendResume&vmid={1}><IMG SRC=images/start.png></A>".format(baselink,vm[0])
  else:
-  print basestr + "on><IMG SRC=images/start.png></A>"
- print "</TD></TR>"
+  print "{0}=vm-on&vmid={1}><IMG SRC=images/start.png></A>".format(baselink,vm[0])
+ print "</CENTER></TD></TR>"
 print "</TABLE>"
 print "</TD>"
 
-#
-# ESXi OPs logs
-#
 print "<TD COLSPAN=2 id='top'>"
 try:
  logs = check_output("tail -n 10 /var/log/network/"+ host +".operations.log | tac", shell=True)
- print "<PRE>" + logs.strip() + "</PRE>"
+ print "<TABLE BORDER=0><TH>Log Entry</TH><TR id='med'><TD>" + logs.replace('\n','<BR>') + "</TD></TR></TABLE>"
 except:
- pass 
+ print "<CENTER><B>Logs Error</B></CENTER>" 
+print "</TD>"
 
-print "</TD></TR>"
+print "</TR>"
 print "</TABLE>"
 
-print "</BODY></HTML>"
+web.printCGIFooter()
