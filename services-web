@@ -1,0 +1,79 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+"""Program docstring.
+
+Application to show service info
+- upshost
+- domain
+- servicehosts (list separated by ,)
+
+"""
+__author__ = "Zacharias El Banna"
+__version__ = "1.0"
+__status__ = "Production"
+
+from subprocess import check_output
+from sys import path as syspath
+syspath.append('/usr/local/sbin')
+from Munin import Munin
+from WWW import Web
+
+web      = Web()
+form     = web.getForm()
+upshost  = form.getvalue('upshost',"esxi1")
+services = form.getvalue('servicehosts',"services,services2")
+svclist  = services.split(',')
+domain   = form.getvalue('domain',"stolab")
+munin    = Munin('/etc/munin/munin.conf','/mnt/ramdisk/munin/lib/')
+
+web.printCGIHeader('Services Pane','grey')
+
+print "<TABLE cellpadding='2'>"
+print "<TR>"
+munin.printHtmlTd("{1}/{0}.{1}/hw_apc_power".format(upshost,domain), 2)
+munin.printHtmlTd("{1}/{0}.{1}/hw_apc_time".format(upshost,domain), 2)
+munin.printHtmlTd("{1}/{0}.{1}/hw_apc_temp".format(upshost,domain), 2)
+print "</TR>"
+
+print "<TR>"
+print "<TD COLSPAN=2>"
+web.printURL("http://{}/dns-top.php?type=sites".format(svclist[0]))
+print "</TD>"
+print "<TD COLSPAN=2>"
+web.printURL("http://{}/dns-top.php?type=clients".format(svclist[0])) 
+print "</TD>";
+print "<TD COLSPAN=2 width=400><TABLE HEIGHT=600><TR><TH>DDI Stats</TH></TR><TR>"
+munin.printHtmlTd("{1}/{0}.{1}/pdns_queries".format(svclist[0],domain))
+print "</TR><TR>"
+munin.printHtmlTd("{1}/{0}.{1}/dhcpd3".format(svclist[0],domain))
+print "</TR></TABLE></TD>"
+print "</TR>"
+
+try:
+ syslogs = check_output("tail -n 10 /var/log/system/system.log | tac", shell=True)
+ netlogs = check_output("tail -n 20 /var/log/network/{}.log | tac".format(domain), shell=True)
+
+ print "<TR><TH COLSPAN=6>Network Logs</TH></TR>"
+ print "<TR><TD COLSPAN=6><PRE>{}</PRE></TD></TR>".format(netlogs)
+ print "<TR><TH COLSPAN=6>Local System Logs</TH></TR>"
+ print "<TR><TD COLSPAN=6><PRE>{}</PRE></TD></TR>".format(syslogs)
+except Exception as err:
+ print "<TR><TD COLSPAN=6>{}</TD></TR>".format(str(err))
+
+print "<TR><TH COLSPAN=6>DHCP Lease List</TH></TR>"
+
+print "<TR><TD COLSPAN=6>"
+web.printURL("http://{0}/dhcp-lease-list.php".format(svclist[0]))
+print "</TD></TR>"
+
+print "<TR>"
+print "<TD COLSPAN=6><TABLE><TR>"
+for svc in svclist:
+ print "<TD><TABLE height=140><TR><TH height=15>System Logs for {}.{}</TH></TR><TR><TD>".format(svc,domain)
+ web.printURL("http://{}/systemlog.php".format(svc))
+ print "</TD></TR></TABLE></TD>"
+print "</TR></TABLE></TD>"
+print "</TR>"
+
+print "</TABLE>"
+web.printCGIFooter()
