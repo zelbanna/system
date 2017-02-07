@@ -15,14 +15,11 @@ syspath.append('/usr/local/sbin')
 
 print """Content-Type: text/html\r\n
 <HTML>
-<style>
-table { border-collapse: collapse; }
-th { border: 1px solid black; display: table-cell; vertical-align: middle; font-weight: bold; text-align: center }
-table#varannan tr:nth-child(even) { background-color: #FFFFFF; font-family: "Courier New", serif; font-size: 14px }
-table#varannan tr:nth-child(odd) {  background-color: #F3F3F3; font-family: "Courier New", serif; font-size: 14px }
-</style>
-<BODY BGCOLOR='#F3F3F3'>
-<HEAD><TITLE>FDB Operations</TITLE></HEAD>
+<HEAD>
+ <TITLE>FDB Operations</TITLE>
+ <LINK REL="stylesheet" TYPE="text/css" HREF="system.css">
+</HEAD>
+<BODY id='grey'>
 """
 stdout.flush()
 

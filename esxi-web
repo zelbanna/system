@@ -19,14 +19,11 @@ from Munin import Munin
 
 print """Content-Type: text/html\r\n
 <HTML><META HTTP-EQUIV='refresh' CONTENT='240'>
-<style>
-table { border-collapse: collapse; }
-th { border: 1px solid black; display: table-cell; vertical-align: middle; font-weight: bold; text-align: center }
-table#varannan tr:nth-child(even) { background-color: #FFFFFF; font-family: "Courier New", serif; font-size: 14px }
-table#varannan tr:nth-child(odd) {  background-color: #F3F3F3; font-family: "Courier New", serif; font-size: 14px }
-</style>
-<BODY BGCOLOR='#F3F3F3'>
-<HEAD><TITLE>ESXi Operations</TITLE></HEAD>
+<HEAD>
+ <TITLE>ESXi Operations</TITLE>
+ <LINK REL="stylesheet" TYPE="text/css" HREF="system.css">
+</HEAD>
+<BODY id='grey'>
 """
 stdout.flush()
 
@@ -44,7 +41,7 @@ munin.printHtmlTd("{1}/{0}.{1}/esxi_cpu_info".format(host,domain))
 munin.printHtmlTd("{1}/{0}.{1}/esxi_mem_info".format(host,domain))
 print "</TR>"
 
-print "<TR style=\"border: 1px solid black; font-family: 'Courier New', serif; font-size: 20px\"><TD>Host: "+ host + "." + domain + "</TD>"
+print "<TR id='bigsolid'><TD>Host: "+ host + "." + domain + "</TD>"
 if nstate:
  if "vm-" in nstate:
   vmop = nstate.split('-')[1]
@@ -68,7 +65,7 @@ else:
 #
 # ESXi OPs Menu
 #
-print "</TR><TR style=\"border: 1px solid black; font-family: 'Courier New', serif; font-size: 16px\"><TD COLSPAN=3>"
+print "</TR><TR id='medsolid'><TD COLSPAN=3>"
 baselink = "<A HREF=esxi-web.cgi?host={0}&domain={1}".format(host,domain)
 print "<CENTER>"
 print "SHUTDOWN: {0}=poweroff>[Host</A>&nbsp;|&nbsp;{0}=vmsoff>All VMs]</A>&nbsp;-&nbsp;{0}=picture>Picture</A>&nbsp;".format(baselink+"&next-state")
@@ -105,7 +102,7 @@ print "</TD>"
 #
 # ESXi OPs logs
 #
-print "<TD COLSPAN=2 style=\"vertical-align: top; text-align: left;\">"
+print "<TD COLSPAN=2 id='top'>"
 try:
  logs = check_output("tail -n 10 /var/log/network/"+ host +".operations.log | tac", shell=True)
  print "<PRE>" + logs.strip() + "</PRE>"

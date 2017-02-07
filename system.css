@@ -1,0 +1,55 @@
+/*
+Version: 1.0
+
+<HEAD><LINK REL="stylesheet" TYPE="text/css" HREF="system.css"></HEAD>
+
+*/
+
+body#grey {
+ background-color : #F3F3F3;
+}
+
+body#white {
+ background-color : white;
+}
+
+table { 
+ border-collapse: collapse;
+}
+
+th {
+ border: 1px solid black;
+ display: table-cell;
+ vertical-align: middle;
+ font-weight: bold;
+ text-align: center
+}
+
+tr#bigsolid {
+ border: 1px solid black;
+ font-family: 'Courier New', serif;
+ font-size: 20px
+}
+
+tr#medsolid {
+ border: 1px solid black;
+ font-family: 'Courier New', serif;
+ font-size: 16px
+}
+
+td#top {
+ vertical-align: top;
+ text-align: left;
+}
+
+table#varannan tr:nth-child(even) {
+ background-color: #FFFFFF;
+ font-family: "Courier New", serif;
+ font-size: 14px
+}
+
+table#varannan tr:nth-child(odd) {
+ background-color: #F3F3F3;
+ font-family: "Courier New", serif;
+ font-size: 14px
+}
