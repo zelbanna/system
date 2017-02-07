@@ -27,6 +27,24 @@ from JRouter import JRouter
 from netsnmp import VarList, Varbind, Session
 from socket import gethostbyaddr
 from os import chmod
+from time import time
+
+######################### Munin Class ########################
+
+class Munin(object):
+
+ def __init__(self, aconf='/etc/munin/munin.conf', alib='/mnt/ramdisk/munin/lib/'):
+  self._config = aconf
+  self._libdir = alib
+ 
+ def __str__(self):
+  return "Config: {0} Libdir: {1}".format(self._config,self._libdir)
+
+ def printHtmlTd(self, asource, acolspan="1"):
+  stop  = int(time())-300
+  start = stop - 24*3600 
+  print "<TD COLSPAN="+acolspan+"><A HREF='munin-cgi/munin-cgi-html/static/dynazoom.html?cgiurl_graph=/munin-cgi/munin-cgi-graph&plugin_name=" + asource + "&size_x=800&size_y=400&start_epoch=" + str(start) + "&stop_epoch=" + str(stop) +"' target=management_cont>"
+  print "<IMG width=399 height=224 SRC='/munin-cgi/munin-cgi-graph/" + asource +"-day.png' /></A></TD>"
 
 ######################### Load munin.conf entries ########################
 

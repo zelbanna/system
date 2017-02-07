@@ -15,6 +15,7 @@ from subprocess import check_call, check_output
 from sys import stdout, path as syspath
 syspath.append('/usr/local/sbin')
 from ESXi import ESXi
+from Munin import Munin
 
 print """Content-Type: text/html\r\n
 <HTML><META HTTP-EQUIV='refresh' CONTENT='240'>
@@ -35,13 +36,19 @@ domain = form.getvalue('domain','mgmt')
 nstate = form.getvalue('next-state',None)
 vmid   = form.getvalue('vmid','-1')
 esxi   = ESXi(host)
+munin  = Munin('/etc/munin/munin.conf','/mnt/ramdisk/munin/lib/')
 
-print "Host: " + host + "." + domain
+print "<TABLE cellpadding='8'><TR>"
+munin.printHtmlTd("{1}/{0}.{1}/esxi_vm_info".format(host,domain))
+munin.printHtmlTd("{1}/{0}.{1}/esxi_cpu_info".format(host,domain))
+munin.printHtmlTd("{1}/{0}.{1}/esxi_mem_info".format(host,domain))
+print "</TR>"
 
+print "<TR style=\"border: 1px solid black; font-family: 'Courier New', serif; font-size: 20px\"><TD>Host: "+ host + "." + domain + "</TD>"
 if nstate:
  if "vm-" in nstate:
   vmop = nstate.split('-')[1]
-  print " [op:" + vmop + " on vmid:" + vmid + "]"
+  print "<TD COLSPAN=2>[op:" + vmop + " on vmid:" + vmid + "]</TD>"
   esxi.sshConnect()
   esxi.sshSend("vim-cmd vmsvc/power." + vmop + " " + vmid)
   esxi.sshClose()
@@ -49,39 +56,33 @@ if nstate:
   esxi.sshConnect()
   esxi.sshSend("poweroff")
   esxi.sshClose()
-  print " [powering off host]"
+  print "<TD COLSPAN=2>[powering off host]</TD>"
  elif nstate == 'vmsoff':
   check_call("/usr/local/sbin/esxi-shutdown  " + host + " &", shell=True)
-  print " [safely shutting down all VMs, reload to follow progress]"
+  print "<TD COLSPAN=2>[safely shutting down all VMs, reload to follow progress]</TD>"
  elif nstate == 'picture':
-  print "<BR><IMG SRC='images/" + host + ".jpg'>"
-
+  print "<TD COLSPAN=2><IMG SRC='images/" + host + ".jpg'></TD>"
+else:
+ print "<TD COLSPAN=2>&nbsp;</TD>"
+ 
 #
 # ESXi OPs Menu
 #
+print "</TR><TR style=\"border: 1px solid black; font-family: 'Courier New', serif; font-size: 16px\"><TD COLSPAN=3>"
 baselink = "<A HREF=esxi-web.cgi?host={0}&domain={1}".format(host,domain)
-
 print "<CENTER>"
 print "SHUTDOWN: {0}=poweroff>[Host</A>&nbsp;|&nbsp;{0}=vmsoff>All VMs]</A>&nbsp;-&nbsp;{0}=picture>Picture</A>&nbsp;".format(baselink+"&next-state")
 print "<A HREF=https://{0}.{1}/ui target=esxi_cont>UI</A>&nbsp;".format(host,domain)
 print "<A HREF=http://{0}-ipmi.{1}/index.html target=esxi_ipmi>IPMI</A> / <A HREF=http://{0}-amt.{1}:16992>AMT</A>&nbsp;".format(host,domain)
 print "{}>Refresh</A>".format(baselink)
 print "</CENTER>"
-print "<HR>"
-
-try:
- logs = check_output("tail -n 10 /var/log/network/"+ host +".operations.log | tac", shell=True)
- print "<PRE>"
- print logs.strip()
- print "</PRE>"
-except:
- pass 
+print "</TD></TR>"
 
 #
 # VM OPs Menu
 #
-print "<HR>"
-print "<TABLE BORDER=0 id='varannan'><TH>VM</TH><TH>Operations</TH>"
+
+print "<TR><TD><TABLE WIDTH=390 BORDER=0 id='varannan'><TH>VM</TH><TH WIDTH=100>Operations</TH>"
 statelist = esxi.loadVMs()
 for vm in statelist:
  if vm[0] == vmid:
@@ -98,6 +99,20 @@ for vm in statelist:
  else:
   print basestr + "on><IMG SRC=images/start.png></A>"
  print "</TD></TR>"
-
 print "</TABLE>"
+print "</TD>"
+
+#
+# ESXi OPs logs
+#
+print "<TD COLSPAN=2 style=\"vertical-align: top; text-align: left;\">"
+try:
+ logs = check_output("tail -n 10 /var/log/network/"+ host +".operations.log | tac", shell=True)
+ print "<PRE>" + logs.strip() + "</PRE>"
+except:
+ pass 
+
+print "</TD></TR>"
+print "</TABLE>"
+
 print "</BODY></HTML>"
