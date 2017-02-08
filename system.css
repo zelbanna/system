@@ -38,6 +38,8 @@ div.z-header {
  background-color : #F3F3F3;
  border-bottom-style : solid;
  border-bottom-color : black;
+
+ padding: 6px;
  height :80px;
  width  :100%;
 }
@@ -54,13 +56,11 @@ div.z-menu {
  height : 100%;
  width : 380px;
  float : left;
- padding: 6px;
 }
 
 div.z-submenu {
  height : 100%;
  margin-left: 380px;
- padding: 6px;
 }
 
 .z-btn {border:none;display:inline-block;outline:0;padding:6px 16px;vertical-align:middle;overflow:hidden;text-decoration:none!important;text-align:center;cursor:pointer;white-space:nowrap}
