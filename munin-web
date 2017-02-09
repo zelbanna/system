@@ -15,11 +15,11 @@ syspath.append('/usr/local/sbin')
 from Munin import muninLoadConf, muninSetConf, muninDiscover
 from WWW import Web              
 
-web  = Web()
+web  = Web('Munin Operations')
 form = web.getForm()
 op   = form.getvalue('op','view')
 
-web.printCGIHeader('Munin Operations','grey')
+web.printCGIHeader()
 
 if op == "discover":
  start = form.getvalue('start',None)
@@ -49,5 +49,3 @@ else:
    print "<TR><TD><A HREF='munin-web.cgi?op=view&node=" + entry +"'>" + entry + "</A></TD>"
    print "<TD><A HREF='munin-web.cgi?op=config&node=" + entry + "&state=" + munindict.get(entry)[1] + "'>" +  munindict.get(entry)[1] + "</A></TD></TR>"
   print "</TABLE>"
-
-print "</BODY></HTML>"

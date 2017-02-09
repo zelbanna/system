@@ -18,22 +18,19 @@ import urllib
 
 class Web(object):
  
- def __init(self):
-  pass
+ def __init__(self, atitle):
+  self._title = atitle
  
  def getForm(self):
   return cgi.FieldStorage()
  
- def printCGIHeader(self, atitle,abodystyle):
+ def printCGIHeader(self):
   print "Content-Type: text/html\r\n"
-  print "<HTML><HEAD>"
-  print "<TITLE>{}</TITLE>".format(atitle)
-  print "<LINK REL='stylesheet' TYPE='text/css' HREF='system.css'></HEAD>"
-  print "<BODY id={}>".format(abodystyle)
+  print "<HEAD>"
+  print "<TITLE>{}</TITLE>".format(self._title)
+  print "<LINK REL='stylesheet' TYPE='text/css' HREF='system.css'>"
+  print "</HEAD>"
   stdout.flush()
-
- def printCGIFooter(self):
-  print "</BODY></HTML>"
 
  def printTableLine(self, acolspan=1):
   print "<TR><TD COLSPAN={}><HR></TD></TR>".format(str(acolspan))

@@ -17,7 +17,8 @@ from ESXi import ESXi
 from Munin import Munin
 from WWW import Web
 
-web    = Web()
+web    = Web('ESXi Operations')
+
 form   = web.getForm()
 host   = form.getvalue('host',"esxi1")
 domain = form.getvalue('domain',"stolab")
@@ -27,7 +28,7 @@ vmid   = form.getvalue('vmid','-1')
 esxi   = ESXi(fqdn)
 baselink = "esxi-web.cgi?host={0}&domain={1}&next-state".format(host,domain)
 
-web.printCGIHeader('ESXi Operations','grey')
+web.printCGIHeader()
 
 print "<TABLE cellpadding='8'>"
 
@@ -118,5 +119,3 @@ print "</TD>"
 
 print "</TR>"
 print "</TABLE>"
-
-web.printCGIFooter()

@@ -13,12 +13,12 @@ from sys import path as syspath
 syspath.append('/usr/local/sbin')
 from WWW import Web              
 
-web    = Web()
-form   = web.getForm()                
+web  = Web('ESXi Operations')
+form = web.getForm()                
 host = form.getvalue('host',None)
 type = form.getvalue('type',None)
 
-web.printCGIHeader('ESXi Operations','grey')
+web.printCGIHeader()
 
 try:
  if host and type == 'wlc':
@@ -59,5 +59,3 @@ try:
   print "show-fdb.cgi takes two arguments, host (device) and type (switch/wlc)"
 except Exception as exception_error:
  print "<B>show-dgb.cgi issue: "+ str(exception_error) + "</B>"
-
-web.printCGIFooter()
