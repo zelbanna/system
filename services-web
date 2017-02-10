@@ -9,7 +9,7 @@ Application to show service info
 
 """
 __author__ = "Zacharias El Banna"
-__version__ = "2.0"
+__version__ = "3.0"
 __status__ = "Production"
 
 from subprocess import check_output
@@ -26,7 +26,7 @@ svclist  = services.split(',')
 domain   = form.getvalue('domain',"stolab")
 munin    = Munin('/etc/munin/munin.conf','/mnt/ramdisk/munin/lib/')
 
-web.printCGIHeader()
+web.printHeader()
 print "<DIV CLASS='z-system-container'>"
 
 print "<DIV CLASS='z-system'>"
@@ -43,15 +43,16 @@ except Exception as err:
  print "<DIV CLASS='z-error'>{}</DIV>".format(str(err))
 print "</DIV>"
 
-print "<DIV CLASS='z-munin'><CENTER>"
+print "<DIV CLASS='z-system'>"
+print "<DIV CLASS='z-munin-1x3'>"
 munin.printHtml("{1}/{0}.{1}/hw_apc_power".format(upshost,domain))
 munin.printHtml("{1}/{0}.{1}/hw_apc_time".format(upshost,domain))
 munin.printHtml("{1}/{0}.{1}/hw_apc_temp".format(upshost,domain))
-print "</CENTER></DIV>"
+print "</DIV>"
+print "</DIV>"
 
 print "<DIV CLASS='z-system'>"
-print "<DIV CLASS='z-munin' style='width:33%; float:left;'>"
-print "<DIV CLASS='z-font-header'>DDI Stats</DIV>"
+print "<DIV CLASS='z-munin-3x1' style='width:33%; float:left;'>"
 munin.printHtml("{1}/{0}.{1}/pdns_queries".format(svclist[0],domain))
 print "<BR>"
 munin.printHtml("{1}/{0}.{1}/dhcpd3".format(svclist[0],domain))

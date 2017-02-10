@@ -23,8 +23,14 @@ class Web(object):
  
  def getForm(self):
   return cgi.FieldStorage()
+
+ def printURL(self, aurl):
+  sock = urllib.urlopen(aurl)
+  html = sock.read()
+  sock.close()
+  print html
  
- def printCGIHeader(self):
+ def printHeader(self):
   print "Content-Type: text/html\r\n"
   print "<HEAD>"
   print "<TITLE>{}</TITLE>".format(self._title)
@@ -35,8 +41,3 @@ class Web(object):
  def printTableLine(self, acolspan=1):
   print "<TR><TD COLSPAN={}><HR></TD></TR>".format(str(acolspan))
 
- def printURL(self, aurl):
-  sock = urllib.urlopen(aurl)
-  html = sock.read()
-  sock.close()
-  print html

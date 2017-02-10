@@ -19,7 +19,7 @@ web  = Web('Munin Operations')
 form = web.getForm()
 op   = form.getvalue('op','view')
 
-web.printCGIHeader()
+web.printHeader()
 
 if op == "discover":
  start = form.getvalue('start',None)
@@ -35,7 +35,7 @@ else:
 
  if op == "view" and node:
   munindict = muninLoadConf('/etc/munin/munin.conf')
-  print "<PRE>" + node + " update is set to [" + munindict.get(node)[1] + "] and handler is [" + munindict.get(node)[0] + "]</PRE>"
+  print "<A>" + node + " update is set to [" + munindict.get(node)[1] + "] and handler is [" + munindict.get(node)[0] + "]</A>"
  else:
   if op == "config" and node and state:
    nstate = "yes" if state == "no" else "no"

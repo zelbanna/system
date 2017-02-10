@@ -18,7 +18,7 @@ form = web.getForm()
 host = form.getvalue('host',None)
 type = form.getvalue('type',None)
 
-web.printCGIHeader()
+web.printHeader()
 
 try:
  if host and type == 'wlc':
