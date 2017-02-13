@@ -20,15 +20,16 @@ class Web(object):
  
  def __init__(self, atitle):
   self._title = atitle
+  self._form = cgi.FieldStorage()
  
- def getForm(self):
-  return cgi.FieldStorage()
+ def getvalue(self,aid,adefault):
+  return self._form.getvalue(aid,adefault)
 
- def printURL(self, aurl):
+ def include(self, aurl):
   sock = urllib.urlopen(aurl)
   html = sock.read()
   sock.close()
-  print html
+  return html
  
  def printHeader(self):
   print "Content-Type: text/html\r\n"
@@ -38,6 +39,8 @@ class Web(object):
   print "</HEAD>"
   stdout.flush()
 
+ ####### Extras #######
+ 
  def printTableLine(self, acolspan=1):
   print "<TR><TD COLSPAN={}><HR></TD></TR>".format(str(acolspan))
 

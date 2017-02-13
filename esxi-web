@@ -7,7 +7,7 @@ Application for web based ESXi operations
 
 """
 __author__ = "Zacharias El Banna"
-__version__ = "2.0"
+__version__ = "6.0"
 __status__ = "Production"
 
 from subprocess import check_call, check_output
@@ -18,26 +18,45 @@ from Munin import Munin
 from WWW import Web
 
 web    = Web('ESXi Operations')
+web.printHeader()
 
-form   = web.getForm()
-host   = form.getvalue('host',"esxi1")
-domain = form.getvalue('domain',"stolab")
+host   = web.getvalue('host',"esxi1")
+domain = web.getvalue('domain',"stolab")
 fqdn   = host + "." + domain
-nstate = form.getvalue('next-state',None)
-vmid   = form.getvalue('vmid','-1')
+nstate = web.getvalue('next-state',None)
+vmid   = web.getvalue('vmid','-1')
 esxi   = ESXi(fqdn)
 baselink = "esxi-web.cgi?host={0}&domain={1}&next-state".format(host,domain)
 
-web.printHeader()
-print "<DIV CLASS='z-system-container'>"
+#
+# UPS.class -> check status and show here?
+#
+print "<UL CLASS='z-navbar'>"
+print "<LI><A style='background-color:red' HREF={0}=poweroff>Shutdown</A></LI>".format(baselink)
+print "<LI><A HREF='#picture' onclick=document.getElementById('picture').style.display='block'>Picture</A></LI>"
+print "<LI><A HREF='#stats'   onclick=document.getElementById('stats').style.display='block'>Stats</A></LI>"
+print "<LI><A HREF='#vmops'   onclick=document.getElementById('vmops').style.display='block'>VM OPs</A></LI>"
+print "<LI><A HREF=https://{0}/ui target=esxi_cont>UI</A></LI>".format(fqdn)
+kvmtype = esxi.getKVMType('ipmi')
+if kvmtype == "amt":
+ print "<LI><A HREF=http://{0}-{2}.{1}:16992 target=esxi_kvm>{3}</A></LI>".format(host,domain,kvmtype,kvmtype.upper())
+else:
+ print "<LI><A HREF=http://{0}-{2}.{1}/index.html target=esxi_kvm>{3}</A></LI>".format(host,domain,kvmtype,kvmtype.upper())
+print "<LI><A onclick=window.location.reload()>Refresh</A></LI>"
+print "</UL><BR><BR>"
 
 
-print "<DIV CLASS='z-system'>"
-print "<TABLE style='width:100%; padding:8px;'><TR>"
+print "<DIV CLASS='z-system' id='picture' style='display:none;'>"
+print "<CENTER><A onclick=this.parentElement.style.display='none'><IMG SRC='images/" + host + ".jpg'></A></CENTER>"
+print "</DIV>"
+
 if nstate:
+ print "<DIV CLASS='z-system'>"
+ print "<DIV CLASS='z-log'>"
+ print "<CENTER><B>"
  if "vm-" in nstate:
   vmop = nstate.split('-')[1]
-  print "<TD COLSPAN=2>[op:" + vmop + " on vmid:" + vmid + "]</TD>"
+  print "[Sent command '" + vmop + "' for vmid:" + vmid + "]"
   esxi.sshConnect()
   esxi.sshSend("vim-cmd vmsvc/power." + vmop + " " + vmid)
   esxi.sshClose()
@@ -45,48 +64,28 @@ if nstate:
   esxi.sshConnect()
   esxi.sshSend("poweroff")
   esxi.sshClose()
-  print "<TD COLSPAN=2>[powering off host]</TD>"
+  print "[powering off host]"
  elif nstate == 'vmsoff':
   check_call("/usr/local/sbin/esxi-shutdown " + host + " &", shell=True)
-  print "<TD COLSPAN=2>[safely shutting down all VMs, refresh page to follow progress]</TD>"
- elif nstate == 'picture':
-  print "<TD COLSPAN=2><CENTER><IMG SRC='images/" + host + ".jpg'></CENTER></TD>"
-else:
- print "<TD COLSPAN=2>&nbsp;</TD>"
-print "</TR>"
-print "<TR id='medsolid'><TD COLSPAN=3><CENTER>"
-print "<A HREF={0}=poweroff>Shutdown</A>&nbsp;".format(baselink)
-print "<A HREF={0}=picture>Picture</A>&nbsp;".format(baselink)
-print "<A HREF=https://{0}/ui target=esxi_cont>UI</A>&nbsp;".format(fqdn)
-kvmtype = esxi.getKVMType('ipmi')
-if kvmtype == "amt":
- print "<A HREF=http://{0}-{2}.{1}:16992 target=esxi_kvm>{3}</A>&nbsp;".format(host,domain,kvmtype,kvmtype.upper())
-else:
- print "<A HREF=http://{0}-{2}.{1}/index.html target=esxi_kvm>{3}</A>&nbsp;".format(host,domain,kvmtype,kvmtype.upper())
-print "<A HREF={0}=refresh>Refresh</A>".format(baselink)
-print "</CENTER></TD>"
-print "</TR></TABLE>"
+  print "[safely shutting down all VMs, refresh page to follow progress]"
+ print "</B></CENTER>"
+ print "</DIV>"
+ print "</DIV>"
+
+munin  = Munin('/etc/munin/munin.conf','/mnt/ramdisk/munin/lib/')
+print "<DIV CLASS='z-system' id='stats' style='display:none;'>"
+print "<DIV CLASS='z-munin-1x3'>"
+munin.printHtml("{1}/{0}/esxi_vm_info".format(fqdn,domain))
+munin.printHtml("{1}/{0}/esxi_cpu_info".format(fqdn,domain))
+munin.printHtml("{1}/{0}/esxi_mem_info".format(fqdn,domain))
+print "<A class='z-btn z-small-btn' onclick=this.parentElement.style.display='none' style='vertical-align:top;'><B>X</B></A>"
 print "</DIV>"
-
-
-#
-# Maybe add munin "option" so that we can use other data sources?
-#
-if True:
- munin  = Munin('/etc/munin/munin.conf','/mnt/ramdisk/munin/lib/')
- print "<DIV CLASS='z-system'>"
- print "<DIV CLASS='z-munin-1x3'>"
- munin.printHtml("{1}/{0}/esxi_vm_info".format(fqdn,domain))
- munin.printHtml("{1}/{0}/esxi_cpu_info".format(fqdn,domain))
- munin.printHtml("{1}/{0}/esxi_mem_info".format(fqdn,domain))
- print "</DIV>"
- print "</DIV>"
+print "</DIV>"
 
 #
 # VM OPs Menu and log
 #
-
-print "<DIV CLASS='z-system' style='float:left;'>"
+print "<DIV CLASS='z-system' id='vmops' style='float:left; display:none'>"
 print "<DIV CLASS='z-op-panel'>"
 print "<TABLE BORDER=0 id='varannan'>"
 print "<TR id='bigsolid'><TH COLSPAN=2>{}</TH></TR>".format(fqdn)
@@ -100,13 +99,13 @@ for vm in statelist:
   print "<TR><TD>" + vm[1] + "</TD>"
  print "<TD><CENTER>"
  if vm[2] == "1":
-  print "<A CLASS='z-btn z-small-btn' HREF={0}=vm-shutdown&vmid={1}><IMG SRC=images/shutdown.png></A>".format(baselink,vm[0])
-  print "<A CLASS='z-btn z-small-btn' HREF={0}=vm-off&vmid={1}><IMG SRC=images/poweroff.png></A>".format(baselink,vm[0])
-  print "<A CLASS='z-btn z-small-btn' HREF={0}=vm-reboot&vmid={1}><IMG SRC=images/reboot.png></A>".format(baselink,vm[0])
+  print "<A CLASS='z-btn z-small-btn' HREF={0}=vm-shutdown&vmid={1}><IMG SRC=images/btn_shutdown.png></A>".format(baselink,vm[0])
+  print "<A CLASS='z-btn z-small-btn' HREF={0}=vm-off&vmid={1}><IMG SRC=images/btn_poweroff.png></A>".format(baselink,vm[0])
+  print "<A CLASS='z-btn z-small-btn' HREF={0}=vm-reboot&vmid={1}><IMG SRC=images/btn_reboot.png></A>".format(baselink,vm[0])
  elif vm[2] == "3":
-  print "<A CLASS='z-btn z-small-btn' HREF={0}=vm-suspendResume&vmid={1}><IMG SRC=images/start.png></A>".format(baselink,vm[0])
+  print "<A CLASS='z-btn z-small-btn' HREF={0}=vm-suspendResume&vmid={1}><IMG SRC=images/btn_start.png></A>".format(baselink,vm[0])
  else:
-  print "<A CLASS='z-btn z-small-btn' HREF={0}=vm-on&vmid={1}><IMG SRC=images/start.png></A>".format(baselink,vm[0])
+  print "<A CLASS='z-btn z-small-btn' HREF={0}=vm-on&vmid={1}><IMG SRC=images/btn_start.png></A>".format(baselink,vm[0])
  print "</CENTER></TD></TR>"
 print "</TABLE>"
 print "</DIV>"
@@ -114,18 +113,10 @@ print "</DIV>"
 
 print "<DIV CLASS='z-system'>"
 print "<DIV CLASS='z-font-header'>{} OP logs</DIV>".format(fqdn)
-
 try:
- print "<DIV CLASS='z-logs'>"
  logs = check_output("tail -n 10 /var/log/network/"+ host +".operations.log | tac", shell=True)
- print logs.replace('\n','<BR>')
- print "</DIV>"
+ print "<DIV CLASS='z-logs'>{}</DIV>".format(logs.replace('\n','<BR>'))
 except:
  print "<CENTER><B>Logs Error</B></CENTER>" 
 print "</DIV>"
-
-
-#
-# End
-#
-print "</DIV>" 
+print "<BR style='clear:left;'>"

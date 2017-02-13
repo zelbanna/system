@@ -16,22 +16,21 @@ from Munin import muninLoadConf, muninSetConf, muninDiscover
 from WWW import Web              
 
 web  = Web('Munin Operations')
-form = web.getForm()
-op   = form.getvalue('op','view')
+op   = web.getvalue('op','view')
 
 web.printHeader()
 
 if op == "discover":
- start = form.getvalue('start',None)
- end   = form.getvalue('end', None)
- domain= form.getvalue('domain', None)
+ start = web.getvalue('start',None)
+ end   = web.getvalue('end', None)
+ domain= web.getvalue('domain', None)
  if start and end and domain:
   print "<B>Starting new discovery</B>"
   print "Verify results in default file locations!"
   muninDiscover(start, end, domain)
 else:
- node  = form.getvalue('node',None)
- state = form.getvalue('state',None)
+ node  = web.getvalue('node',None)
+ state = web.getvalue('state',None)
 
  if op == "view" and node:
   munindict = muninLoadConf('/etc/munin/munin.conf')
@@ -44,8 +43,12 @@ else:
   munindict = muninLoadConf('/etc/munin/munin.conf')
   keys = munindict.keys()
   keys.sort()
+  print "<DIV CLASS='z-system' id='munin-op' style='float:left;'>"
+  print "<DIV CLASS='z-op-panel'>"
   print "<TABLE id=varannan><TR><TH>Node</TH><TH>Update</TH></TR>"
   for entry in keys:
+   state = munindict.get(entry)[1]
    print "<TR><TD><A HREF='munin-web.cgi?op=view&node=" + entry +"'>" + entry + "</A></TD>"
-   print "<TD><A HREF='munin-web.cgi?op=config&node=" + entry + "&state=" + munindict.get(entry)[1] + "'>" +  munindict.get(entry)[1] + "</A></TD></TR>"
+   print "<TD><A CLASS='z-btn z-small-btn' HREF='munin-web.cgi?op=config&node=" + entry + "&state=" + state + "'><IMG SRC=images/btn_{}.png></A></TD></TR>".format("start" if state == "no" else "shutdown")
   print "</TABLE>"
+  print "</DIV></DIV>"

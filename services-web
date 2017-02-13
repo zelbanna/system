@@ -9,83 +9,92 @@ Application to show service info
 
 """
 __author__ = "Zacharias El Banna"
-__version__ = "3.0"
+__version__ = "6.0"
 __status__ = "Production"
 
 from subprocess import check_output
 from sys import path as syspath
 syspath.append('/usr/local/sbin')
+from SystemFunctions import sysLogMsg
 from Munin import Munin
 from WWW import Web
 
 web      = Web('Services Pane')
-form     = web.getForm()
-upshost  = form.getvalue('upshost',"esxi1")
-services = form.getvalue('servicehosts',"services,services2")
-svclist  = services.split(',')
-domain   = form.getvalue('domain',"stolab")
+web.printHeader()
+
+domain   = web.getvalue('domain',"stolab")
+upshost  = web.getvalue('upshost',None)
+op       = web.getvalue('op',None)
+# List of hosts providing systemlog.php , separated by ','
+svchosts = web.getvalue('servicehosts',"services,services2")
+svclist  = svchosts.split(',')
 munin    = Munin('/etc/munin/munin.conf','/mnt/ramdisk/munin/lib/')
 
-web.printHeader()
-print "<DIV CLASS='z-system-container'>"
+if op == 'clearlogs':
+ try:
+  open("/var/log/network/"+ domain +".log",'w').close()
+  open("/var/log/system/system.log",'w').close()
+  syslogMsg("Emptied logs")
+ except Exception as err:
+  print "<BR><BR><B>Error clearlogs:"+str(err) + "</B><BR><BR>"
 
-print "<DIV CLASS='z-system'>"
+#
+# NavBar
+#
+print "<UL CLASS='z-navbar'>"
+print "<LI style='background-color:red'><A HREF=services.cgi?op=clearlogs&domain=" + domain + "&servicehosts="+ svchosts +">Clear Logs</A></LI>"
+print "<LI><A HREF='#networklogs'>Logs</A></LI>"
+if upshost:
+ "<LI><A HREF='#ups' onclick=document.getElementById('ups').style.display='block'>UPS</A></LI>"
+print "<LI><A HREF='#dns'  onclick=document.getElementById('dns').style.display='block'>DNS</A></LI>"
+print "<LI><A HREF='#dhcp' onclick=document.getElementById('dhcp').style.display='block'>DHCP</A></LI>"
+print "<LI><A HREF='#system' onclick=document.getElementById('system').style.display='block'>System</A></LI>"
+print "<LI><A onclick=window.location.reload()>Refresh</A></LI>"
+print "</UL><BR><BR>"
+  
+print "<DIV CLASS='z-system' id=networklogs>"
 try:
- syslogs = check_output("tail -n 10 /var/log/system/system.log | tac", shell=True)
  netlogs = check_output("tail -n 20 /var/log/network/{}.log | tac".format(domain), shell=True)
+ syslogs = check_output("tail -n 10 /var/log/system/system.log | tac", shell=True)
 
  print "<DIV CLASS='z-font-header'>Network Logs</DIV>"
  print "<DIV CLASS='z-logs'><PRE>{}</PRE></DIV>".format(netlogs)
-
  print "<DIV CLASS='z-font-header'>System Logs</DIV>"
  print "<DIV CLASS='z-logs'><PRE>{}</PRE></DIV>".format(syslogs)
 except Exception as err:
  print "<DIV CLASS='z-error'>{}</DIV>".format(str(err))
 print "</DIV>"
 
-print "<DIV CLASS='z-system'>"
-print "<DIV CLASS='z-munin-1x3'>"
-munin.printHtml("{1}/{0}.{1}/hw_apc_power".format(upshost,domain))
-munin.printHtml("{1}/{0}.{1}/hw_apc_time".format(upshost,domain))
-munin.printHtml("{1}/{0}.{1}/hw_apc_temp".format(upshost,domain))
-print "</DIV>"
-print "</DIV>"
+if upshost:
+ print "<DIV CLASS='z-system' id=ups style='display:none;'>"
+ print "<DIV CLASS='z-munin-1x3'>"
+ munin.printHtml("{1}/{0}.{1}/hw_apc_power".format(upshost,domain))
+ munin.printHtml("{1}/{0}.{1}/hw_apc_time".format(upshost,domain))
+ munin.printHtml("{1}/{0}.{1}/hw_apc_temp".format(upshost,domain))
+ print "</DIV>"
+ print "</DIV>"
 
-print "<DIV CLASS='z-system'>"
+print "<DIV CLASS='z-system' id=dns style='display:none;'>"
 print "<DIV CLASS='z-munin-3x1' style='width:33%; float:left;'>"
 munin.printHtml("{1}/{0}.{1}/pdns_queries".format(svclist[0],domain))
 print "<BR>"
 munin.printHtml("{1}/{0}.{1}/dhcpd3".format(svclist[0],domain))
 print "</DIV>"
-print "<DIV CLASS='z-table' style='width:33%; float:left;'>"
-web.printURL("http://{}/dns-top.php?type=sites".format(svclist[0]))
-print "</DIV>"
-print "<DIV CLASS='z-table' style='width:33%;'>"
-web.printURL("http://{}/dns-top.php?type=clients".format(svclist[0])) 
-print "</DIV>";
-print "<BR style='clear: left;'/>"
+print "<DIV CLASS='z-table' style='width:33%; float:left;'>{}</DIV>".format(web.include("http://"+ svclist[0] +"/dns-top.php?type=sites"))
+print "<DIV CLASS='z-table' style='width:33%;'>{}</DIV>".format(web.include("http://"+ svclist[0] +"/dns-top.php?type=clients"))
+print "<BR>"
 print "</DIV>"
 
-print "<DIV CLASS='z-system'>"
+print "<DIV CLASS='z-system' id=dhcp style='display:none;'>"
 print "<DIV CLASS='z-font-header'>DHCP Lease List</DIV>"
-print "<DIV CLASS='z-logs'>"
-web.printURL("http://{0}/dhcp-lease-list.php".format(svclist[0]))
-print "</DIV>"
+print "<DIV CLASS='z-logs'>{}</DIV>".format(web.include("http://"+ svclist[0] +"/dhcp-lease-list.php"))
 print "</DIV>"
 
-print "<DIV CLASS='z-system'>"
+print "<DIV CLASS='z-system' id=system style='display:none;'>"
 for svc in svclist:
  print "<DIV style='width:" + str(int(100/len(svclist))) + "%; float:left'>"
  print "<DIV CLASS='z-font-header'>System Logs for {}.{}</DIV>".format(svc,domain)
- print "<DIV CLASS='z-logs'>"
- web.printURL("http://{}/systemlog.php".format(svc))
- print "</DIV>"
+ print "<DIV CLASS='z-logs'>{}</DIV>".format(web.include("http://"+ svc +"/systemlog.php"))
  print "</DIV>"
 print "<BR STYLE='clear:left;'>"
 print "</DIV>"
-
-#
-# End Div
-#
-print "</DIV>"
-

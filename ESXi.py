@@ -146,6 +146,10 @@ class ESXi(object):
    print "DEBUG " + str(exception_error)
   return statelist
 
+ def widgetVMs(self):
+  
+  pass
+
  def backupLoadFile(self, abackupfile):
   #
   # BackupFile contains list of vm names to backup
