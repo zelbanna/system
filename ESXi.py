@@ -11,7 +11,7 @@ __version__ = "4.0"
 __status__ = "Production"
 
 from PasswordContainer import esxi_username, esxi_password
-from SystemFunctions import sysLogMsg, sysCheckHost
+from SystemFunctions import sysLogMsg, sysCheckHost, sysLockPidFile, sysReleasePidFile
 from netsnmp import VarList, Varbind, Session
 from select import select
 
@@ -147,13 +147,9 @@ class ESXi(object):
   return statelist
 
  def widgetVMs(self):
-  
   pass
 
  def backupLoadFile(self, abackupfile):
-  #
-  # BackupFile contains list of vm names to backup
-  #
   try:
    data = self.sshSend("cat " + abackupfile)
    self.backuplist = data.split()
@@ -162,12 +158,10 @@ class ESXi(object):
   return True   
  
  def backupAddVM(self, abackupfile, avmname):
-  #
-  # Assume not loaded Backup file?
-  #
   try:
    self.loadBackupFile(abackupfile)
    if not avmname in self.backuplist:
     self.sshSend("echo '" + avmname + "' >> " + abackupfile)
   except:
    pass
+
