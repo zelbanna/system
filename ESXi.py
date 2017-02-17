@@ -7,7 +7,7 @@ The ESXi interworking module
 
 """
 __author__ = "Zacharias El Banna"
-__version__ = "5.0"
+__version__ = "6.0"
 __status__ = "Production"
 
 from PasswordContainer import esxi_username, esxi_password
@@ -41,9 +41,10 @@ class ESXi(object):
   self.vmstatemap  = { "1" : "powered on", "2" : "powered off", "3" : "suspended", "powered on" : "1", "powered off" : "2", "suspended" : "3" }
   self.backuplist = []
   self.statefile = "/var/tmp/esxi." + self.hostname + ".vmstate.log"
-
+  self._threads = []
+  
  def __str__(self):
-  return str(self.hostname) + " SSHConnected:" + str(self._sshclient != None)  + " SNMP_Community:" + self.community + " Backuplist:" + str(self.backuplist) + " statefile:" + self.statefile
+  return str(self.hostname) + " SSHConnected:" + str(self._sshclient != None)  + " SNMP_Community:" + self.community + " Backuplist:" + str(self.backuplist) + " statefile:" + self.statefile + " Threads:" + str(map((lambda x: x.name), self._threads))
 
  def log(self,amsg):
   sysLogMsg(amsg, "/var/log/network/" + self.hostname + ".operations.log")
@@ -69,20 +70,21 @@ class ESXi(object):
  # ESXi ssh interaction - Connect() send, send,.. Close()
  #
  def sshConnect(self):
-  from paramiko import SSHClient, AutoAddPolicy, AuthenticationException
-  try:
-   self._sshclient = SSHClient()
-   self._sshclient.set_missing_host_key_policy(AutoAddPolicy())
-   self._sshclient.connect(self.hostname, username=esxi_username, password=esxi_password )
-   # self._sshclient.get_transport().set_log_channel(self.hostname)
-  except AuthenticationException:
-   self.log("DEBUG: Authentication failed when connecting to %s" % self.hostname)
-   self._sshclient = None
-   return False
+  if not self._sshclient:
+   from paramiko import SSHClient, AutoAddPolicy, AuthenticationException
+   try:
+    self._sshclient = SSHClient()
+    self._sshclient.set_missing_host_key_policy(AutoAddPolicy())
+    self._sshclient.connect(self.hostname, username=esxi_username, password=esxi_password )
+    # self._sshclient.get_transport().set_log_channel(self.hostname)
+   except AuthenticationException:
+    self.log("DEBUG: Authentication failed when connecting to %s" % self.hostname)
+    self._sshclient = None
+    return False
   return True
 
  def sshSend(self,amessage):
-  if not self._sshclient == None:
+  if self._sshclient:
    output = ""
    self.log("sendESXi: [" + amessage + "]")
    stdin, stdout, stderr = self._sshclient.exec_command(amessage)
@@ -97,7 +99,7 @@ class ESXi(object):
    self._sshclient = None
 
  def sshClose(self):
-  if not self._sshclient == None:
+  if self._sshclient:
    try:
     self._sshclient.close()
     self._sshclient = None
@@ -137,11 +139,9 @@ class ESXi(object):
   try:
    vmnameobjs = VarList(Varbind('.1.3.6.1.4.1.6876.2.1.1.2'))
    vmstateobjs = VarList(Varbind('.1.3.6.1.4.1.6876.2.1.1.6'))
-
    session = Session(Version = 2, DestHost = self.hostname, Community = self.community, UseNumeric = 1, Timeout = 100000, Retries = 2)
    session.walk(vmnameobjs)
    session.walk(vmstateobjs)
-
    index = 0
    for result in vmnameobjs:
     statetuple = [result.iid, result.val, self.vmstatemap[vmstateobjs[index].val]]
@@ -180,6 +180,18 @@ class ESXi(object):
  #
  #
 
+ def threading(self, aoperation):
+  import threading
+  op = getattr(self, aoperation, None)
+  if op:
+   thread = threading.Thread(target = op)
+   self._threads.append(thread)
+   thread.name = aoperation
+   thread.start()
+   self.log("threading: Started operation [{}]".format(aoperation))
+  else:
+   self.log("threading: Illegal operation passed [{}]".format(aoperation))
+  
  def startupVMs(self):
   from time import sleep
   # Power up everything in the statefile
@@ -187,7 +199,7 @@ class ESXi(object):
    self.log("startupVMs: Has no reason to run powerUp as no VMs were shutdown..")
    return False
   
-  self.createLock(4)
+  self.createLock(2)
   self.sshConnect()
 
   statefilefd = open(self.statefile)
@@ -206,7 +218,6 @@ class ESXi(object):
 
  def shutdownVMs(self):
   from time import sleep
-
   # Power down everything and save to the statefile, APCupsd statemachine:
   #
   # 1) apcupsd calls event triggering shutdown (runlimit, timelimit)
@@ -228,7 +239,7 @@ class ESXi(object):
 
   deplist=[]
   freelist=[]
-  self.createLock(4)
+  self.createLock(2)
 
   try:
    vmlist = self.loadVMs()
