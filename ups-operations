@@ -1,0 +1,33 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+"""Program docstring.
+
+Application to shutdown and then power on VMs shutdown inititated by UPS system
+
+ This program could be triggered by online or (more likely) as a bootup event..
+
+ Check existing VMs and boot up the rest... after battery % is above 'threshold'?
+
+"""
+__author__ = "Zacharias El Banna"
+__version__ = "2.0"
+__status__ = "Production"
+
+from sys import argv, exit, stdout, path as syspath
+if not len(argv) == 3: 
+ print  argv[0] + " <op: powerup | shutdown > <esxi host>"
+ exit(1)
+
+syspath.append('/usr/local/sbin')
+from ESXi import ESXi
+
+op   = argv[1]
+host = argv[2]
+esxi = ESXi(host)
+
+if op == 'powerup':
+ esxi.startupVMs()
+elif op == 'shutdown':
+ esxi.shutdownVMs()
+

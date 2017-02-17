@@ -7,13 +7,14 @@ The ESXi interworking module
 
 """
 __author__ = "Zacharias El Banna"
-__version__ = "4.0"
+__version__ = "5.0"
 __status__ = "Production"
 
 from PasswordContainer import esxi_username, esxi_password
 from SystemFunctions import sysLogMsg, sysCheckHost, sysLockPidFile, sysReleasePidFile
 from netsnmp import VarList, Varbind, Session
 from select import select
+from os import remove, path
 
 ########################################### ESXi ############################################
 #
@@ -35,14 +36,15 @@ class ESXi(object):
   else:
    self.domain = None
   self.kvm = akvm
-  self.sshclient = None
+  self._sshclient = None
   self.community = "public"
   self.vmstatemap  = { "1" : "powered on", "2" : "powered off", "3" : "suspended", "powered on" : "1", "powered off" : "2", "suspended" : "3" }
   self.backuplist = []
+  self.statefile = "/var/tmp/esxi." + self.hostname + ".vmstate.log"
 
  def __str__(self):
-  return str(self.hostname) + " SNMP_Community:" + str(self.community) + " SSHclient:" + str(self.sshclient) + " Backuplist:" + str(self.backuplist)
-   
+  return str(self.hostname) + " SSHConnected:" + str(self._sshclient != None)  + " SNMP_Community:" + self.community + " Backuplist:" + str(self.backuplist) + " statefile:" + self.statefile
+
  def log(self,amsg):
   sysLogMsg(amsg, "/var/log/network/" + self.hostname + ".operations.log")
 
@@ -63,25 +65,28 @@ class ESXi(object):
  def releaseLock(self):
   sysReleasePidFile("/tmp/esxi." + self.hostname + ".vm.pid")
 
+ #
+ # ESXi ssh interaction - Connect() send, send,.. Close()
+ #
  def sshConnect(self):
   from paramiko import SSHClient, AutoAddPolicy, AuthenticationException
   try:
-   self.sshclient = SSHClient()
-   self.sshclient.set_missing_host_key_policy(AutoAddPolicy())
-   self.sshclient.connect(self.hostname, username=esxi_username, password=esxi_password )
-   # self.sshclient.get_transport().set_log_channel(self.hostname)
+   self._sshclient = SSHClient()
+   self._sshclient.set_missing_host_key_policy(AutoAddPolicy())
+   self._sshclient.connect(self.hostname, username=esxi_username, password=esxi_password )
+   # self._sshclient.get_transport().set_log_channel(self.hostname)
   except AuthenticationException:
-   print "DEBUG: Authentication failed when connecting to %s" % self.hostname
+   self.log("DEBUG: Authentication failed when connecting to %s" % self.hostname)
+   self._sshclient = None
    return False
   return True
 
  def sshSend(self,amessage):
-  if not self.sshclient == None:
+  if not self._sshclient == None:
    output = ""
    self.log("sendESXi: [" + amessage + "]")
-   stdin, stdout, stderr = self.sshclient.exec_command(amessage)
+   stdin, stdout, stderr = self._sshclient.exec_command(amessage)
    while not stdout.channel.exit_status_ready():
-    # Only print data if there is data to read in the channel
     if stdout.channel.recv_ready():
      rl, wl, xl = select([stdout.channel], [], [], 0.0)
      if len(rl) > 0:
@@ -89,12 +94,13 @@ class ESXi(object):
    return output.rstrip('\n')
   else:
    self.log("Error: trying to send to closed channel")
+   self._sshclient = None
 
  def sshClose(self):
-  if not self.sshclient == None:
+  if not self._sshclient == None:
    try:
-    self.sshclient.close()
-    self.sshclient = None
+    self._sshclient.close()
+    self._sshclient = None
    except Exception as err:
     self.log( "Close error: " + str(err))
 
@@ -142,13 +148,17 @@ class ESXi(object):
     statetuple.append(result.val in self.backuplist)
     statelist.append(statetuple)
     index = index + 1
-  except Exception as exception_error:
-   print "DEBUG " + str(exception_error)
+  except:
+   pass
   return statelist
 
  def widgetVMs(self):
   pass
 
+ #
+ # Simple backup schema for ghettoVCB - assumption is that there is a file on the ESXi <abackupfile> that
+ #  contains a list of names of virtual machines to backup
+ # 
  def backupLoadFile(self, abackupfile):
   try:
    data = self.sshSend("cat " + abackupfile)
@@ -165,3 +175,106 @@ class ESXi(object):
   except:
    pass
 
+ #
+ # Shutdown methods to/from default statefile
+ #
+ #
+
+ def startupVMs(self):
+  from time import sleep
+  # Power up everything in the statefile
+  if not path.isfile(self.statefile):
+   self.log("startupVMs: Has no reason to run powerUp as no VMs were shutdown..")
+   return False
+  
+  self.createLock(4)
+  self.sshConnect()
+
+  statefilefd = open(self.statefile)
+  for line in statefilefd:
+   if line == "---------\n":
+    self.log("startupVMs: Powerup - MARK found, wait a while for dependent")
+    sleep(60)
+   else:
+    vm = line.strip('\n').split(',')
+    if vm[2] == "1" and not vm[1] == "management" :
+     esxi.sshSend("vim-cmd vmsvc/power.on " + vm[0])
+  remove(sfile)
+  self.sshClose()
+  self.releaseLock()
+  return True
+
+ def shutdownVMs(self):
+  from time import sleep
+
+  # Power down everything and save to the statefile, APCupsd statemachine:
+  #
+  # 1) apcupsd calls event triggering shutdown (runlimit, timelimit)
+  # 2.1) apcupsd calls doshutdown
+  # 2.2) apcupsd writes /etc/apcupsd/powerfail   <<--- This triggers everything
+  #
+  # X) Remove doshutdown's shutdown request within apccontrol
+  # X) Create a doshutdown which simply calls /usr/local/sbin/esxi-shutdown.py <esxi-host> for all esxi-hosts
+  # X) Add  to  doshutdown a `shutdown -h 10`
+  #
+  # 3) any call to shutdown -h x will call /etc/init.d/halt within x seconds - THIS WILL TRIGGER CONTROLLED SHUTDOWN OF EVERYTHING
+  # 4) /etc/init.d/halt will call /etc/apcupsd/ups-monitor
+  # 5) ups-monitor checks for powerfail file and calls /etc/apcupsd/apccontrol (again) with killpower
+  # 6) apccontrol killpower -> /sbin/apcupsd killpower
+  # 7) UPS is signaled and start shutdown sequence ( awaiting new power feed )
+  if path.isfile(self.statefile):
+   self.log("shutdownVMs: Shutdown all VMs VMs are already shutdown! exit")
+   return False
+
+  deplist=[]
+  freelist=[]
+  self.createLock(4)
+
+  try:
+   vmlist = self.loadVMs()
+   self.sshConnect()
+   # Start go through all vms
+   #
+   for vm in vmlist:
+    # Only interested in active VMs
+    if vm[2] == "1":
+     if vm[1].startswith("nas"):
+      deplist.append(vm)
+     elif vm[1] != "management":
+      freelist.append(vm)
+      self.sshSend("vim-cmd vmsvc/power.shutdown " + vm[0])
+
+   # Write statelog
+   #
+   statefilefd = open(self.statefile,'w')
+   for vm in deplist:
+    statefilefd.write(vm[0]+','+ vm[1] + ',' + vm[2] +"\n")
+   statefilefd.write("---------\n")
+   for vm in freelist:
+    statefilefd.write(vm[0]+','+ vm[1] + ',' + vm[2] +"\n")
+   statefilefd.close()
+ 
+   # Shutdown VMs that has a dependence
+   #
+   sleep(20)
+   for vm in deplist:
+    self.sshSend("vim-cmd vmsvc/power.shutdown " + vm[0])
+
+   # Powering off machines that doesn't respond too well to guest shutdowns
+   #
+   sleep(60)
+   vmlist = self.loadVMs()
+   for vm in vmlist:
+    if vm[2] == "1":
+     if vm[1].startswith("nas"):
+      self.log("Shutdown of NAS vm not completed..")
+     elif not vm[1] == "management":
+      self.sshSend("vim-cmd vmsvc/power.off " + vm[0])
+
+   # Done, finish off local machine
+   #
+   self.sshClose()
+   self.releaseLock()
+   self.log("shutdownVMs: Done! Ready for powerloss, awaiting system halt")
+  except Exception as vmerror:
+   self.log("ERROR: " + str(vmerror))
