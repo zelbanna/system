@@ -18,6 +18,48 @@ from SystemFunctions import sysLogMsg
 from netsnmp import VarList, Varbind, Session
 from lxml import etree
 
+################################ WLC Object #####################################
+#
+# Simpler WLC class
+#
+
+class WLC(object):
+
+ def __init__(self,ahostname, acommunity='public'):
+  self._hostname = ahostname
+  self._community = acommunity
+  
+ def __str__(self):
+  return "Hostname: {} Community: {}".format(self._hostname, self._community)
+
+ def widgetSwitchTable(self):
+  from socket import gethostbyaddr
+  try:
+   # Length of below is used to offset ip address (32) + 1 and mac base (33) + 1 
+   cssidobjs = VarList(Varbind(".1.3.6.1.4.1.14525.4.4.1.1.1.1.15"))
+   cipobjs = VarList(Varbind(".1.3.6.1.4.1.14525.4.4.1.1.1.1.4"))
+    
+   session = Session(Version = 2, DestHost = self._hostname, Community = self._community, UseNumeric = 1, Timeout = 100000, Retries = 2)
+   session.walk(cssidobjs)
+   session.walk(cipobjs)
+  except:
+   return
+        
+  ipdict= dict(map(lambda res: (res.tag[33:], res.val) ,cipobjs))
+  print "<DIV CLASS='z-op-panel' style='overflow-y:auto; max-height:600px'>"
+  print "<TABLE ID=varannan><TH>Name</TH><TH>IP</TH><TH>MAC</TH><TH>SSid</TH>"
+  for res in cssidobjs:
+   macbase=res.tag[34:]
+   mac = (macbase+"."+res.iid).split(".")
+   mac = ":".join(map(lambda x: hex(int(x))[2:],mac))
+   try:
+    clientname = gethostbyaddr(ipdict[macbase])[0]
+   except:
+    clientname = "unknown"
+   print "<TR><TD>" + clientname + "&nbsp;</TD><TD>" + ipdict.get(macbase) + "&nbsp;</TD><TD>" + mac + "&nbsp;</TD><TD>" + res.val + "</TD></TR>"
+  print "</TABLE>"
+  print "</DIV>"
+
 ################################ JUNOS Object #####################################
 #
 # Connect to Router, a couple of RPCs will be issued from there
@@ -25,10 +67,10 @@ from lxml import etree
 
 class JRouter(object):
 
- def __init__(self,hostname):
+ def __init__(self,ahostname):
   from jnpr.junos import Device
   from jnpr.junos.utils.config import Config
-  self._router = Device(hostname, user=netconf_username, password=netconf_password, normalize=True)
+  self._router = Device(ahostname, user=netconf_username, password=netconf_password, normalize=True)
   self._config = Config(self._router)
   self._type = ""
   self._model = ""
@@ -36,7 +78,7 @@ class JRouter(object):
   self._interfacesname = {}
  
  def __str__(self):
-  return str(self._router) + " Type:" + self._type + " Model:" + self._model + " Version:" + self._version
+  return "{} Type:{} Model:{} Version:{}".format(str(self._router),  self._type, self._model, self._version)
 
  def connect(self):
   try:
@@ -115,8 +157,8 @@ class JRouter(object):
 
 class SRX(JRouter):
 
- def __init__(self,hostname):
-  JRouter.__init__(self, hostname)
+ def __init__(self,ahostname):
+  JRouter.__init__(self, ahostname)
   self.dnslist = []
   self.dhcpip = ""
   self.tunnels = 0
@@ -171,8 +213,8 @@ class SRX(JRouter):
 
 class EX(JRouter):
 
- def __init__(self,hostname):
-  JRouter.__init__(self, hostname)
+ def __init__(self,ahostname):
+  JRouter.__init__(self, ahostname)
   self._type = "EX"
   self._style  = None
   self._interfacenames = {}
@@ -206,3 +248,19 @@ class EX(JRouter):
   except Exception as err:
    sysLogMsg("System Error - fetching FDB: " + str(err))
   return fdblist
+
+ #
+ #
+ #
+ def widgetSwitchTable(self):
+  try:
+   fdb = self.getSwitchTable()
+   print "<DIV CLASS='z-op-panel' style='overflow-y:auto; max-height:600px'>"
+   print "<TABLE ID=varannan><TH>VLAN</TH><TH>MAC</TH><TH>Interface</TH><TH>Interface Description</TH>"
+   for entry in fdb:
+    print "<TR><TD>" + "&nbsp;</TD><TD>".join(entry) + "</TD></TR>\n"
+   print "<TR><TD COLSPAN=2></TD></TR></TABLE></DIV>"
+  except Exception as err:
+   sysLogMsg("widgetSwitchTable: Error [{}]".format(str(err)))
+   print "<B>Error - issue loading widget: {}</B>".format(str(err))
+
