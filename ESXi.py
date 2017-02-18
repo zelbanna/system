@@ -41,13 +41,25 @@ class ESXi(object):
   self.vmstatemap  = { "1" : "powered on", "2" : "powered off", "3" : "suspended", "powered on" : "1", "powered off" : "2", "suspended" : "3" }
   self.backuplist = []
   self.statefile = "/var/tmp/esxi." + self.hostname + ".vmstate.log"
-  self._threads = []
+  self._threads = {}
   
  def __str__(self):
-  return str(self.hostname) + " SSHConnected:" + str(self._sshclient != None)  + " SNMP_Community:" + self.community + " Backuplist:" + str(self.backuplist) + " statefile:" + self.statefile + " Threads:" + str(map((lambda x: x.name), self._threads))
+  return str(self.hostname) + " SSHConnected:" + str(self._sshclient != None)  + " SNMP_Community:" + self.community + " Backuplist:" + str(self.backuplist) + " statefile:" + self.statefile + " Threads:" + str(self._threads.keys())
 
  def log(self,amsg):
   sysLogMsg(amsg, "/var/log/network/" + self.hostname + ".operations.log")
+
+ def threading(self, aoperation):
+  from threading import Thread
+  op = getattr(self, aoperation, None)
+  if op:
+   thread = Thread(target = op)
+   self._threads['aoperation'] = thread
+   thread.name = aoperation
+   thread.start()
+   self.log("threading: Started operation [{}]".format(aoperation))
+  else:
+   self.log("threading: Illegal operation passed [{}]".format(aoperation))
 
  # Check different FQDN for KVM types
  def getKVMType(self, adefault = None):
@@ -180,18 +192,6 @@ class ESXi(object):
  #
  #
 
- def threading(self, aoperation):
-  import threading
-  op = getattr(self, aoperation, None)
-  if op:
-   thread = threading.Thread(target = op)
-   self._threads.append(thread)
-   thread.name = aoperation
-   thread.start()
-   self.log("threading: Started operation [{}]".format(aoperation))
-  else:
-   self.log("threading: Illegal operation passed [{}]".format(aoperation))
-  
  def startupVMs(self):
   from time import sleep
   # Power up everything in the statefile
@@ -279,8 +279,13 @@ class ESXi(object):
     if vm[2] == "1":
      if vm[1].startswith("nas"):
       self.log("Shutdown of NAS vm not completed..")
-     elif not vm[1] == "management":
+     elif vm[1].startswith("pulse"):
       self.sshSend("vim-cmd vmsvc/power.off " + vm[0])
+      self.log("shutdownVMs: powering off machine: {}!".format(vm[0]))
+     elif not vm[1] == "management":
+      # Correct? or pass?
+      self.sshSend("vim-cmd vmsvc/power.suspend " + vm[0])
+      self.log("shutdownVMs: suspending machine: {}!".format(vm[0]))
 
    # Done, finish off local machine
    #

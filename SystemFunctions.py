@@ -26,6 +26,8 @@ Generic Functions, exports:
 - sysReleasePid
 - sysFileReplace
 
+- sysSortCSS
+
 """
 __author__ = "Zacharias El Banna"                     
 __version__ = "4.3"
@@ -139,3 +141,8 @@ def sysFileReplace(afile,old,new):
   f.write(filedata)
  return True
             
+def sysSortCss(afile):
+ with open(afile,'r') as css:
+  filedata = css.read()
+  for line in filedata.split('\n'):
+   print line 
