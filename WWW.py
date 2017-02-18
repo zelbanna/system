@@ -35,7 +35,7 @@ class Web(object):
   print "Content-Type: text/html\r\n"
   print "<HEAD>"
   print "<TITLE>{}</TITLE>".format(self._title)
-  print "<LINK REL='stylesheet' TYPE='text/css' HREF='system.css'>"
+  print "<LINK REL='stylesheet' TYPE='text/css' HREF='system.css?v=2'>"
   print "</HEAD>"
   stdout.flush()
 
