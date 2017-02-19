@@ -35,7 +35,9 @@ class ESXi(object):
    self.domain = fqdn[1]
   else:
    self.domain = None
-  self.kvm = akvm
+ 
+  self._kvmtype = akvm
+  self._kvmip   = None
   self._sshclient = None
   self.community = "public"
   self.vmstatemap  = { "1" : "powered on", "2" : "powered off", "3" : "suspended", "powered on" : "1", "powered off" : "2", "suspended" : "3" }
@@ -62,15 +64,17 @@ class ESXi(object):
    self.log("threading: Illegal operation passed [{}]".format(aoperation))
 
  # Different FQDN for KVM types
- def getKVMType(self, adefault = None):
-  if self.kvm:
-   return self.kvm
+ def getKVMType(self, adefaulttype = None):
+  if self._kvmip and self._kvmtype:
+   return self._kvmtype, self._kvmip
   elif self.domain:
    for type in ['amt','ipmi','kvm']:
-    if sysGetHost("{}-{}.{}".format(self.hostname,type,self.domain)):
-     self.kvm = type
-     return type
-  return adefault
+    ip = sysGetHost("{}-{}.{}".format(self.hostname,type,self.domain))
+    if ip:
+     self._kvmip = ip
+     self._kvmtype = type
+     return type, ip
+  return adefaulttype, "{}-{}.{}".format(self.hostname,adefaulttype,self.domain)
 
  def createLock(self,atime):
   sysLockPidFile("/tmp/esxi." + self.hostname + ".vm.pid",atime)
