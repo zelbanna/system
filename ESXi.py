@@ -11,7 +11,7 @@ __version__ = "6.0"
 __status__ = "Production"
 
 from PasswordContainer import esxi_username, esxi_password
-from SystemFunctions import sysLogMsg, sysLockPidFile, sysReleasePidFile
+from SystemFunctions import sysLogMsg, sysLockPidFile, sysReleasePidFile, sysGetHost
 from netsnmp import VarList, Varbind, Session
 from select import select
 from os import remove, path
