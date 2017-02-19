@@ -59,7 +59,7 @@ class Grapher(object):
   # read until find [ ... ] then read two more lines, finally add to dict
   with open(self._configfile) as conffile:
    # Clear old dict first..
-   self._configitems = {}
+   self._configitems.clear()
    entry,handler,update = None, None, None
    extra = []
   

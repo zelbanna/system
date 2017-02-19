@@ -21,7 +21,7 @@ class Device(object):
 
  ########################## Discover Devices ##########################
  # 
- # Defautl file names..
+ # Default file names..
  #
  def __init__(self):
   self._hostsfile = '/var/tmp/device.hosts.conf'
@@ -38,8 +38,9 @@ class Device(object):
  #
  def discoverDevices(self, aStartIP, aStopIP, adomain, ahandler = '127.0.0.1'):
   from os import chmod
+  from time import time
+  start_time = int(time())
   sysLogMsg("deviceDiscover: " + aStartIP + " -> " + aStopIP + ", for domain '" + adomain + "', handler:" + ahandler)
-
   try:
    with open(self._graphplug, 'w') as f:
     f.write("#!/bin/bash\n")
@@ -51,17 +52,15 @@ class Device(object):
    sysLogMsg("MuninDiscovery - failed to open files: [{}]".format(str(err)))
    return False
 
-  ############### Traverse IPs #################
-
   grapher = Grapher()
   for ip in sysIPs2Range(aStartIP, aStopIP):
    self.detectDevice(ip, adomain, grapher, ahandler)
+  sysLogMsg("discoverDevices: Total time spent: {} seconds".format(int(time()) - start_time))
 
- ############################################### Munin Host checks model ##################################################
+ ########################### Detect Devices ###########################
  #
- # Device must answer to ping(!)
+ # Device must answer to ping(!) for system to continue
  #
-
  def detectDevice(self, aip, adomain, agrapher, ahandler = '127.0.0.1'):
   if not pingOS(aip):
    return False
@@ -98,15 +97,14 @@ class Device(object):
      for tp in [ "EX", 'SRX', 'QFX', 'MX', 'WLC' ]:
       if tp in model:
        type = tp.lower()
-       break
-     else:
-      type = "other"
-     if not type == "other":
-      jdev = JRouter(aip)
-      if jdev.connect():
-       activeinterfaces = jdev.getUpInterfaces()
-       jdev.close()
-       self._graphlock.acquire()
+       if not type == 'wlc':
+        jdev = JRouter(aip)
+        if jdev.connect():
+         activeinterfaces = jdev.getUpInterfaces()
+         jdev.close()
+        else:
+         sysLogMsg("detectDevice: impossible to connect to {}! [{} - {}]".format(fqdn,type,model))
+       self._graphlock.acquire()      
        with open(self._graphplug, 'a') as graphfile:
         if agrapher.getConfItem(fqdn) == None:
          agrapher.addConf(fqdn, ahandler, "no")
@@ -114,10 +112,11 @@ class Device(object):
         graphfile.write('ln -s /usr/share/munin/plugins/snmp__uptime /etc/munin/plugins/snmp_' + fqdn + '_uptime\n')
         graphfile.write('ln -s /usr/share/munin/plugins/snmp__users  /etc/munin/plugins/snmp_' + fqdn + '_users\n')
         for ifd in activeinterfaces:
-         graphfile.write('ln -s /usr/share/munin/plugins/snmp__if_   /etc/munin/plugins/snmp_' + fqdn + '_if_'+ ifd[2] +'\n')
+         graphfile.write('ln -s /usr/share/munin/plugins/snmp__if_    /etc/munin/plugins/snmp_' + fqdn + '_if_'+ ifd[2] +'\n')
        self._graphlock.release()
-      else:
-       sysLogMsg("detectDevice: impossible to connect to {}! [{} - {}]".format(fqdn,type,model))
+       break
+     else:
+      type = "other"
     else:
      subinfolist = infolist[1].split(",")
      model = subinfolist[2]
@@ -125,7 +124,7 @@ class Device(object):
    elif infolist[0] == "VMware":
     model = "esxi"
     type  = "other"
-    slef._graphlock.acquire()
+    self._graphlock.acquire()
     with open(self._graphplug, 'a') as graphfile:
      if not agrapher.getConfItem(fqdn):
       agrapher.addConf(fqdn, ahandler, "no")
@@ -135,9 +134,9 @@ class Device(object):
    elif infolist[0] == "Linux":
     model = "linux"
     if "Debian" in devobjs[0].val:
-     type = "Debian"
+     type = "debian"
     else:
-     type = "Generic"
+     type = "generic"
    else:
     model = "other"
     type  = " ".join(infolist[0:4])
@@ -147,3 +146,5 @@ class Device(object):
    hostsfile.write("IP:{:<16} FQDN:{:<16} DNS:{:<12} SNMP:{:<12} Model:{:<12} Type:{}\n".format(aip, fqdn, dns, snmp, model, type))
    self._hostslock.release()
   return True
+
+#############################################################################
