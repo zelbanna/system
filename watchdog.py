@@ -58,7 +58,7 @@ upif = argv[4]
 ########################### Run ################################
 from JRouter import SRX
 from DNS import getLoopiaIP, setLoopiaIP, getLoopiaSuffix, syncPDNS
-from SystemFunctions import sysCheckResults, sysLogMsg, sysSetDebug, sysLogDebug
+from SystemFunctions import sysGetResults, sysLogMsg, sysSetDebug, sysLogDebug
 
 if argv[1] == "debug":
  sysSetDebug(True)
@@ -67,7 +67,7 @@ try:
  srx = SRX(fwip)
  if srx.connect():
   sysLogDebug("Connected to: " + fwip)
-  srx.checkDHCP()
+  srx.loadDHCP()
 
   # First check DNS recursion
   if len(srx.dnslist) > 0:
@@ -87,9 +87,9 @@ try:
       gwip = gethostbyname(gw + getLoopiaSuffix())
       # check configured gw ip, still ok - try to ping, otherwise reconf 
       if gwip == address:
-       sysLogMsg("Reachability Check - Ping IPsec gateway (" + gw + " | " + gwip + "): " + sysCheckResults(srx.pingRPC(gwip)))
+       sysLogMsg("Reachability Check - Ping IPsec gateway (" + gw + " | " + gwip + "): " + sysGetResults(srx.pingRPC(gwip)))
       else: 
-       sysLogMsg("Reachability Check - Reconfigure IPsec gateway: " + sysCheckResults(srx.setIPsec(gwname,address,gwip)))
+       sysLogMsg("Reachability Check - Reconfigure IPsec gateway: " + sysGetResults(srx.setIPsec(gwname,address,gwip)))
   
    else:
     sysLogMsg("Reachability Error - Can't reach external name server (DNS): " + srx.dnslist[0])

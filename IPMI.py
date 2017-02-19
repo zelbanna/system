@@ -15,7 +15,7 @@ __version__ = "3.2"
 __status__ = "Production"
 
 from PasswordContainer import ipmi_username, ipmi_password
-from SystemFunctions import sysCheckResults, sysStr2Hex
+from SystemFunctions import sysGetResults, sysStr2Hex
 from subprocess import check_output, check_call
 
 
@@ -40,4 +40,4 @@ class IPMI(object):
   front = sysStr2Hex(afront)
   ipmistring = "ipmitool -H " + self.hostname + " -U " + ipmi_username + " -P " + ipmi_password + " raw 0x3a 0x01 0x00 0x00 " + rear + " " + rear + " " + front + " " + front + " 0x00 0x00"
   res = check_call(ipmistring,stdout=FNULL,stderr=FNULL,shell=True)
-  print sysCheckResults(res)
+  print sysGetResults(res)

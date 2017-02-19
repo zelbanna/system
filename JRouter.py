@@ -112,7 +112,7 @@ class JRouter(object):
  def getType(self):
   return self._type
 
- def checkInterfacesName(self):
+ def loadInterfacesName(self):
   interfaces = self._router.rpc.get_interface_information(descriptions=True)
   for interface in interfaces:
    ifd         = interface.find("name").text
@@ -134,7 +134,7 @@ class JRouter(object):
  #
  # SNMP is much smoother than Netconf for some things :-)
  #
- def quickCheck(self):
+ def quickLoad(self):
   try:
    devobjs = VarList(Varbind('.1.3.6.1.2.1.1.1.0'))
    session = Session(Version = 2, DestHost = self._router._hostname, Community = 'public', UseNumeric = 1, Timeout = 100000, Retries = 2)
@@ -167,7 +167,7 @@ class SRX(JRouter):
  def __str__(self):
   return JRouter.__str__(self) + " DNS:" + str(self.dnslist) + " IP:" + self.dhcpip + " IPsec:" + str(self.tunnels)
 
- def checkDHCP(self):
+ def loadDHCP(self):
   try:
    result = self._router.rpc.get_dhcp_client_information() 
    addresslist = result.xpath(".//address-obtained")

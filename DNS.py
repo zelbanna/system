@@ -11,7 +11,7 @@ __version__ = "3.2"
 __status__ = "Production"
 
 from PasswordContainer import loopia_username, loopia_password, loopia_domain
-from SystemFunctions import sysCheckResults, sysLogMsg, sysFileReplace
+from SystemFunctions import sysLogMsg, sysFileReplace
 from subprocess import check_output, check_call
 from time import sleep
 from socket import gethostbyname

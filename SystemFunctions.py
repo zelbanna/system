@@ -7,13 +7,13 @@ Generic Functions, exports:
 
 - sysSetDebug
 - sysLogDebug
-- sysCheckHost
+- sysGetHost
 - sysIP2Int
 - sysInt2IP
 - sysIPs2Range
 - sysStr2Hex
 - pingOS
-- sysCheckResults
+- sysGetResults
 - sysSetLog
 - sysDebug (bool)
 - sysLogMsg
@@ -49,12 +49,11 @@ def sysSetDebug(astate):
 def sysLogDebug(amsg):
  if sysDebug: print "Log: " + amsg
 
-def sysCheckHost(ahost):
+def sysGetHost(ahost):
  try:
-  gethostbyname(ahost)
-  return True
+  return gethostbyname(ahost)
  except:
-  return False
+  return None
 
 def sysIP2Int(addr):
  return unpack("!I", inet_aton(addr))[0]
@@ -74,7 +73,7 @@ def sysStr2Hex(arg):
 def pingOS(ip):
  return system("ping -c 1 -w 1 " + ip + " > /dev/null 2>&1") == 0
 
-def sysCheckResults(test):
+def sysGetResults(test):
  return "success" if test else "failure"
 
 def sysLogMsg(amsg, alog='/var/log/system/system.log'):

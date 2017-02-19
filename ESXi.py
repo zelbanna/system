@@ -11,7 +11,7 @@ __version__ = "6.0"
 __status__ = "Production"
 
 from PasswordContainer import esxi_username, esxi_password
-from SystemFunctions import sysLogMsg, sysCheckHost, sysLockPidFile, sysReleasePidFile
+from SystemFunctions import sysLogMsg, sysLockPidFile, sysReleasePidFile
 from netsnmp import VarList, Varbind, Session
 from select import select
 from os import remove, path
@@ -61,13 +61,13 @@ class ESXi(object):
   else:
    self.log("threading: Illegal operation passed [{}]".format(aoperation))
 
- # Check different FQDN for KVM types
+ # Different FQDN for KVM types
  def getKVMType(self, adefault = None):
   if self.kvm:
    return self.kvm
   elif self.domain:
    for type in ['amt','ipmi','kvm']:
-    if sysCheckHost("{}-{}.{}".format(self.hostname,type,self.domain)):
+    if sysGetHost("{}-{}.{}".format(self.hostname,type,self.domain)):
      self.kvm = type
      return type
   return adefault
@@ -143,7 +143,7 @@ class ESXi(object):
    pass
   return "unknown"
 
- def loadVMs(self):
+ def getVMs(self):
   #
   # Returns a list with tuples of strings: [ vm.id, vm.name, vm.powerstate, vm.to_be_backedup ]
   #
@@ -181,7 +181,7 @@ class ESXi(object):
  
  def backupAddVM(self, abackupfile, avmname):
   try:
-   self.loadBackupFile(abackupfile)
+   self.backupLoadFile(abackupfile)
    if not avmname in self.backuplist:
     self.sshSend("echo '" + avmname + "' >> " + abackupfile)
   except:
@@ -242,7 +242,7 @@ class ESXi(object):
   self.createLock(2)
 
   try:
-   vmlist = self.loadVMs()
+   vmlist = self.getVMs()
    self.sshConnect()
    # Start go through all vms
    #
@@ -274,7 +274,7 @@ class ESXi(object):
    # Powering off machines that doesn't respond too well to guest shutdowns
    #
    sleep(60)
-   vmlist = self.loadVMs()
+   vmlist = self.getVMs()
    for vm in vmlist:
     if vm[2] == "1":
      if vm[1].startswith("nas"):
