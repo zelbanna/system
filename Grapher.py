@@ -11,10 +11,8 @@ Exports:
 
 """  
 __author__ = "Zacharias El Banna"
-__version__ = "4.0"
+__version__ = "5.0"
 __status__ = "Production"
-
-from time import time
 
 ####################################### Grapher Class ##########################################
 #
@@ -22,15 +20,15 @@ from time import time
 
 class Grapher(object):
 
- def __init__(self, aconf='/etc/munin/munin.conf', ahandler='127.0.0.1'):
-  self._config = aconf
+ def __init__(self, aconf='/etc/munin/munin.conf'):
+  self._configfile = aconf
   self._configitems = {}
-  self._defaulthandler = ahandler
  
  def __str__(self):
-  return "Config: {0}".format(self._config)
+  return "ConfigFile:{0} ConfigKeys:[{1}]".format(self._configfile, str(self._configitems.keys()))
 
  def printHtml(self, asource):
+  from time import time
   stop  = int(time())-300
   start = stop - 24*3600 
   print "<A HREF='munin-cgi/munin-cgi-html/static/dynazoom.html?"
@@ -59,7 +57,7 @@ class Grapher(object):
  #
  def loadConf(self):
   # read until find [ ... ] then read two more lines, finally add to dict
-  with open(self._config) as conffile:
+  with open(self._configfile) as conffile:
    # Clear old dict first..
    self._configitems = {}
    entry,handler,update = None, None, None
@@ -69,15 +67,16 @@ class Grapher(object):
    #
    for linen in conffile:
     line = linen.strip()
-    if not entry and line.startswith("[") and line.endswith("]"):
+    if entry:
+     if line.startswith("address"):
+      handler = line[8:]
+     elif line.startswith("update"):
+      update = line[7:10].strip()
+      self._configitems[entry] = [handler, update]
+      entry,handler,update = None, None, None
+      extra = []
+    elif line.startswith("[") and line.endswith("]"):
      entry = line[1:-1]
-    elif entry and line.startswith("address"):
-     handler = line[8:]
-    elif entry and line.startswith("update"):
-     update = line[7:10].strip()
-     self._configitems[entry] = [handler, update]
-     entry,handler,update = None, None, None
-     extra = []
 
  def getConfItem(self, aentry):
   if not self._configitems:
@@ -91,7 +90,7 @@ class Grapher(object):
   
  def updateConf(self, aentry, astate):
   oldstate = "no" if astate == "yes" else "yes"
-  with open(self._config, 'r') as conffile:
+  with open(self._configfile, 'r') as conffile:
    filedata = conffile.read()
  
   pos = filedata.find("[" + aentry + "]")
@@ -101,15 +100,15 @@ class Grapher(object):
    old = filedata[pos:pos + 100].split("[")[1]
    new = old.replace("update " + oldstate, "update " + astate, 1)
    filedata = filedata.replace(old,new)
-   with open(self._config, 'w') as conffile:
+   with open(self._configfile, 'w') as conffile:
     conffile.write(filedata)
    data = self._configitems.get(aentry,None)
    if data:
     data[1] = astate
     self._configitems[aentry] = data
 
- def addConf(self, aentry, ahandler, aupdate):
-  with open(self._config, 'a') as conffile:
+ def addConf(self, aentry, aupdate, ahandler = '127.0.0.1'):
+  with open(self._configfile, 'a') as conffile:
    conffile.write("\n")
    conffile.write("[" + aentry + "]\n")
    conffile.write("address " + ahandler + "\n")
