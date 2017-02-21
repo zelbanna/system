@@ -47,7 +47,7 @@ class WLC(object):
         
   ipdict= dict(map(lambda res: (res.tag[33:], res.val) ,cipobjs))
   print "<DIV CLASS='z-op-panel' style='overflow-y:auto; max-height:600px'>"
-  print "<TABLE ID=varannan><TH>Name</TH><TH>IP</TH><TH>MAC</TH><TH>SSid</TH>"
+  print "<TABLE CLASS='z-everyother'><TH>Name</TH><TH>IP</TH><TH>MAC</TH><TH>SSid</TH>"
   for res in cssidobjs:
    macbase=res.tag[34:]
    mac = (macbase+"."+res.iid).split(".")
@@ -256,7 +256,7 @@ class EX(JRouter):
   try:
    fdb = self.getSwitchTable()
    print "<DIV CLASS='z-op-panel' style='overflow-y:auto; max-height:600px'>"
-   print "<TABLE ID=varannan><TH>VLAN</TH><TH>MAC</TH><TH>Interface</TH><TH>Interface Description</TH>"
+   print "<TABLE CLASS='z-everyother'><TH>VLAN</TH><TH>MAC</TH><TH>Interface</TH><TH>Interface Description</TH>"
    for entry in fdb:
     print "<TR><TD>" + "&nbsp;</TD><TD>".join(entry) + "</TD></TR>\n"
    print "<TR><TD COLSPAN=2></TD></TR></TABLE></DIV>"
