@@ -95,22 +95,23 @@ class Grapher(object):
   
  def updateEntry(self, aentry, astate):
   oldstate = "no" if astate == "yes" else "yes"
-  with open(self._configfile, 'r') as conffile:
-   filedata = conffile.read()
- 
-  pos = filedata.find("[" + aentry + "]")
-  old = None
-  new = None
-  if pos > 0:
-   old = filedata[pos:pos + 100].split("[")[1]
-   new = old.replace("update " + oldstate, "update " + astate, 1)
-   filedata = filedata.replace(old,new)
-   with open(self._configfile, 'w') as conffile:
-    conffile.write(filedata)
-   data = self._configitems.get(aentry,None)
-   if data:
-    data[1] = astate
-    self._configitems[aentry] = data
+  try:
+   with open(self._configfile, 'r') as conffile:
+    filedata = conffile.read()
+   pos = filedata.find("[" + aentry + "]")
+   old,new = None, None
+   if pos > 0:
+    old = filedata[pos:pos + 100].split("[")[1]
+    new = old.replace("update " + oldstate, "update " + astate, 1)
+    filedata = filedata.replace(old,new)
+    with open(self._configfile, 'w') as conffile:
+     conffile.write(filedata)
+    data = self._configitems.get(aentry,None)
+    if data:
+     data[1] = astate
+     self._configitems[aentry] = data
+  except Exception as err:
+   sysLogMsg("Grapher updateEntry: Error [{}]".format(str(err)))
 
  def addConf(self, aentry, aupdate, ahandler = '127.0.0.1'):
   with open(self._configfile, 'a') as conffile:
@@ -135,6 +136,7 @@ class Grapher(object):
 
    devs = Device()
    entries = devs.getEntries()
+   entries.sort()
    for key in entries:
     t = Thread(target = self.detectDevice, args=[key, devs.getEntry(key), ahandler])
     t.start()
