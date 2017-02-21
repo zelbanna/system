@@ -14,18 +14,23 @@ __author__ = "Zacharias El Banna"
 __version__ = "5.0"
 __status__ = "Production"
 
+from SystemFunctions import sysLogDebug, sysLogMsg, pingOS
+from threading import Lock, Thread, active_count
+
 ####################################### Grapher Class ##########################################
 #
 #
 
 class Grapher(object):
 
- def __init__(self, aconf='/etc/munin/munin.conf'):
+ def __init__(self, aconf='/etc/munin/munin.conf', agraphplug = '/var/www/device.graph.plugins'):
   self._configfile = aconf
   self._configitems = {}
+  self._graphplug = agraphplug
+  self._graphlock = Lock()
  
  def __str__(self):
-  return "ConfigFile:{0} ConfigKeys:[{1}]".format(self._configfile, str(self._configitems.keys()))
+  return "ConfigFile:{} PluginFile:{} ConfigKeys:[{}]".format(self._configfile, self._graphplug, str(self._configitems.keys()))
 
  def printHtml(self, asource):
   from time import time
@@ -78,7 +83,7 @@ class Grapher(object):
     elif line.startswith("[") and line.endswith("]"):
      entry = line[1:-1]
 
- def getConfItem(self, aentry):
+ def getEntry(self, aentry):
   if not self._configitems:
    self.loadConf()
   return self._configitems.get(aentry,None)
@@ -88,7 +93,7 @@ class Grapher(object):
    self.loadConf()
   return self._configitems.keys()
   
- def updateConf(self, aentry, astate):
+ def updateEntry(self, aentry, astate):
   oldstate = "no" if astate == "yes" else "yes"
   with open(self._configfile, 'r') as conffile:
    filedata = conffile.read()
@@ -114,4 +119,72 @@ class Grapher(object):
    conffile.write("address " + ahandler + "\n")
    conffile.write("update " + aupdate + "\n")
   self._configitems[aentry] = [ ahandler, aupdate ]
+ 
+ #
+ # Writes plugin info for devices found with DeviceHandler
+ #
+ def discoverDevices(self, ahandler = '127.0.0.1'):
+  from os import chmod
+  from time import time
+  from DeviceHandler import Device
+  start_time = int(time())
+  try:
+   with open(self._graphplug, 'w') as f:
+    f.write("#!/bin/bash\n")
+   chmod(self._graphplug, 0o777)
 
+   devs = Device()
+   entries = devs.getEntries()
+   for key in entries:
+    t = Thread(target = self.detectDevice, args=[key, devs.getEntry(key), ahandler])
+    t.start()
+    if active_count() > 10:
+     t.join()
+  except Exception as err:
+   sysLogMsg("graphDiscover: failure in processing Device entries: [{}]".format(str(err)))
+  sysLogMsg("graphDiscover: Total time spent: {} seconds".format(int(time()) - start_time))
+
+ ########################### Detect Devices ###########################
+ #
+ # Device must answer to ping(!) for system to continue
+ #
+ def detectDevice(self, aip, aentry, ahandler = '127.0.0.1'):
+  if not pingOS(aip):
+   return False
+  from JRouter import JRouter  
+  activeinterfaces = []
+  type = aentry[5]
+  fqdn = aentry[1]
+  try:
+   if type in [ 'ex', 'srx', 'qfx', 'mx', 'wlc' ]:
+    if not type == 'wlc':
+     jdev = JRouter(aip)
+     if jdev.connect():
+      activeinterfaces = jdev.getUpInterfaces()
+      jdev.close()
+     else:
+      sysLogMsg("detectDevice: impossible to connect to {}! [{} - {}]".format(fqdn,type,model))
+    self._graphlock.acquire()      
+    with open(self._graphplug, 'a') as graphfile:
+     if self.getEntry(fqdn) == None:
+      self.addConf(fqdn, ahandler, "no")
+     graphfile.write('ln -s /usr/local/sbin/plugins/snmp__{0} /etc/munin/plugins/snmp_{1}_{0}\n'.format(type,fqdn))
+     graphfile.write('ln -s /usr/share/munin/plugins/snmp__uptime /etc/munin/plugins/snmp_' + fqdn + '_uptime\n')
+     graphfile.write('ln -s /usr/share/munin/plugins/snmp__users  /etc/munin/plugins/snmp_' + fqdn + '_users\n')
+     for ifd in activeinterfaces:
+      graphfile.write('ln -s /usr/share/munin/plugins/snmp__if_    /etc/munin/plugins/snmp_' + fqdn + '_if_'+ ifd[2] +'\n')
+    self._graphlock.release()
+   elif type == "esxi":
+    self._graphlock.acquire()
+    with open(self._graphplug, 'a') as graphfile:
+     if not self.getEntry(fqdn):
+      agrapher.addConf(fqdn, ahandler, "no")
+     graphfile.write('ln -s /usr/share/graph/plugins/snmp__uptime /etc/munin/plugins/snmp_' + fqdn + '_uptime\n')              
+     graphfile.write('ln -s /usr/local/sbin/plugins/snmp__esxi    /etc/munin/plugins/snmp_' + fqdn + '_esxi\n')
+    self._graphlock.release()
+  except Exception as err:
+   sysLogMsg("Graph detectDevice - error: [{}]".format(str(err)))
+   return False
+  return True
+
+#############################################################################

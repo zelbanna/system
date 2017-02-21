@@ -9,67 +9,80 @@ Exports:
 - DeviceHandler
 
 """  
-__author__ = "Zacharias El Banna"
-__version__ = "3.0"
-__status__ = "Production"
+__author__  = "Zacharias El Banna"
+__version__ = "5.0"
+__status__  = "Production"
 
 from SystemFunctions import pingOS, sysIPs2Range, sysLogDebug, sysLogMsg
-from Grapher import Grapher
-from threading import Lock
+from threading import Lock, Thread, active_count
 
 class Device(object):
 
- ########################## Discover Devices ##########################
- # 
- # Default file names..
- #
- def __init__(self):
-  self._hostsfile = '/var/tmp/device.hosts.conf'
-  self._hostslock = Lock()
-  self._graphplug = '/var/tmp/device.graph.plugins'
-  self._graphlock = Lock()
+ def __init__(self, aconfigfile = '/var/www/device.hosts.conf'):
+  self._configfile = aconfigfile
+  self._configlock = Lock()
+  self._configitems = {}
 
- ########################## Discover Devices ##########################
+ def __str__(self):
+  return "Device({} {})".format(self._configfile, str(self._configitems))
+
  #
- # - aStartIP ip
- # - aStopIP ip
- # - domain string (like stolabs)
- # - ahandler, ip of machine that execute snmp fetch, defaults to 127.0.0.1
+ # Config entry contains [ip]:  [ domain, fqdn, dns, snmp, model, type, is_graphed]
  #
- def discoverDevices(self, aStartIP, aStopIP, adomain, ahandler = '127.0.0.1'):
+ def loadConf(self):
+  try:
+   with open(self._configfile) as conffile:
+    # Clear old dict first..
+    self._configitems.clear()
+    for line in conffile:
+     if line.startswith('#'):
+      continue
+     entry = " ".join(line.split()).split()
+     self._configitems[entry[0]] = entry[1:8]
+  except Exception as err:
+   sysLogMsg("DeviceHandler loadConf: error reading config file - [{}]".format(str(err)))
+
+ def getEntry(self, aentry):
+  if not self._configitems:
+   self.loadConf()
+  return self._configitems.get(aentry,None)
+        
+ def getEntries(self):
+  if not self._configitems:
+   self.loadConf()
+  return self._configitems.keys()
+   
+ def discoverDevices(self, aStartIP, aStopIP, adomain):
   from os import chmod
   from time import time
   start_time = int(time())
-  sysLogMsg("deviceDiscover: " + aStartIP + " -> " + aStopIP + ", for domain '" + adomain + "', handler:" + ahandler)
+  sysLogMsg("Device discovery: " + aStartIP + " -> " + aStopIP + ", for domain '" + adomain + "'")
+  # Reset hosts file
   try:
-   with open(self._graphplug, 'w') as f:
-    f.write("#!/bin/bash\n")
-   with open(self._hostsfile, 'w') as f:
+   with open(self._configfile, 'w') as f:
     f.write("################################# HOSTS FOUND  ##################################\n")
-   chmod(self._graphplug, 0o755)
-   chmod(self._hostsfile, 0o644)
+   chmod(self._configfile, 0o666)
+   for ip in sysIPs2Range(aStartIP, aStopIP):
+    t = Thread(target = self.detectDevice, args=[ip, adomain])
+    t.start()
+    # Slow down a little..
+    if active_count() > 10:
+     t.join()
   except Exception as err:
-   sysLogMsg("MuninDiscovery - failed to open files: [{}]".format(str(err)))
-   return False
-
-  grapher = Grapher()
-  for ip in sysIPs2Range(aStartIP, aStopIP):
-   self.detectDevice(ip, adomain, grapher, ahandler)
-  sysLogMsg("discoverDevices: Total time spent: {} seconds".format(int(time()) - start_time))
+   sysLogMsg("Device discovery: Error [{}]".format(str(err)))
+  sysLogMsg("Device discovery: Total time spent: {} seconds".format(int(time()) - start_time))
 
  ########################### Detect Devices ###########################
  #
  # Device must answer to ping(!) for system to continue
  #
- def detectDevice(self, aip, adomain, agrapher, ahandler = '127.0.0.1'):
+ def detectDevice(self, aip, adomain):
   if not pingOS(aip):
    return False
 
-  from JRouter import JRouter
   from netsnmp import VarList, Varbind, Session
   from socket import gethostbyaddr
-    
-  dns,fqdn,model,snmp,type = None,None,None,None,None  
+  
   try:
    # .1.3.6.1.2.1.1.1.0 : Device info
    # .1.3.6.1.2.1.1.5.0 : Device name
@@ -78,42 +91,24 @@ class Device(object):
    session.get(devobjs)
   except:
    pass
-
-  snmp = devobjs[1].val.lower() if devobjs[1].val else "unknown"
+ 
+  dns,fqdn,model,type = 'unknown','unknown','unknown','unknown'
+  snmp = devobjs[1].val.lower() if devobjs[1].val else 'unknown'
   try:
    dns = gethostbyaddr(aip)[0].split('.')[0].lower()
    fqdn = dns
   except:
-   dns = "unknown"
    fqdn = snmp
   fqdn = fqdn.split('.')[0] + "." + adomain if not (adomain in fqdn) else fqdn
 
   if devobjs[0].val:
-   activeinterfaces = []    
    infolist = devobjs[0].val.split()
    if infolist[0] == "Juniper":
     if infolist[1] == "Networks,":
-     model = infolist[3].upper()
-     for tp in [ "EX", 'SRX', 'QFX', 'MX', 'WLC' ]:
+     model = infolist[3].lower()
+     for tp in [ 'ex', 'srx', 'qfx', 'mx', 'wlc' ]:
       if tp in model:
-       type = tp.lower()
-       if not type == 'wlc':
-        jdev = JRouter(aip)
-        if jdev.connect():
-         activeinterfaces = jdev.getUpInterfaces()
-         jdev.close()
-        else:
-         sysLogMsg("detectDevice: impossible to connect to {}! [{} - {}]".format(fqdn,type,model))
-       self._graphlock.acquire()      
-       with open(self._graphplug, 'a') as graphfile:
-        if agrapher.getConfItem(fqdn) == None:
-         agrapher.addConf(fqdn, ahandler, "no")
-        graphfile.write('ln -s /usr/local/sbin/plugins/snmp__{0} /etc/munin/plugins/snmp_{1}_{0}\n'.format(type,fqdn))
-        graphfile.write('ln -s /usr/share/munin/plugins/snmp__uptime /etc/munin/plugins/snmp_' + fqdn + '_uptime\n')
-        graphfile.write('ln -s /usr/share/munin/plugins/snmp__users  /etc/munin/plugins/snmp_' + fqdn + '_users\n')
-        for ifd in activeinterfaces:
-         graphfile.write('ln -s /usr/share/munin/plugins/snmp__if_    /etc/munin/plugins/snmp_' + fqdn + '_if_'+ ifd[2] +'\n')
-       self._graphlock.release()
+       type = tp
        break
      else:
       type = "other"
@@ -123,14 +118,7 @@ class Device(object):
      type  = "other"
    elif infolist[0] == "VMware":
     model = "esxi"
-    type  = "other"
-    self._graphlock.acquire()
-    with open(self._graphplug, 'a') as graphfile:
-     if not agrapher.getConfItem(fqdn):
-      agrapher.addConf(fqdn, ahandler, "no")
-     graphfile.write('ln -s /usr/share/graph/plugins/snmp__uptime /etc/munin/plugins/snmp_' + fqdn + '_uptime\n')              
-     graphfile.write('ln -s /usr/local/sbin/plugins/snmp__esxi    /etc/munin/plugins/snmp_' + fqdn + '_esxi\n')
-    self._graphlock.release()
+    type  = "esxi"
    elif infolist[0] == "Linux":
     model = "linux"
     if "Debian" in devobjs[0].val:
@@ -141,10 +129,10 @@ class Device(object):
     model = "other"
     type  = " ".join(infolist[0:4])
 
-  with open(self._hostsfile, 'a') as hostsfile:
-   self._hostslock.acquire()
-   hostsfile.write("IP:{:<16} FQDN:{:<16} DNS:{:<12} SNMP:{:<12} Model:{:<12} Type:{}\n".format(aip, fqdn, dns, snmp, model, type))
-   self._hostslock.release()
+  with open(self._configfile, 'a') as hostsfile:
+   self._configlock.acquire()
+   hostsfile.write("{:<16} {:<10} {:<16} {:<12} {:<12} {:<12} {:<8} no\n".format(aip, adomain, fqdn, dns, snmp, model, type))
+   self._configlock.release()
   return True
 
 #############################################################################
