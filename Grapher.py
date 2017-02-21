@@ -45,13 +45,13 @@ class Grapher(object):
   print "<DIV CLASS='z-graph' style='width:{}px; height:240px; float:left;'>".format(str(lwidth * 420))
   for src in asources:
    self.printHtml(src)
-  if aclose: print "<A class='z-btn z-small-btn' onclick=this.parentElement.style.display='none' style='vertical-align:top;'><B>X</B></A>"
+  if aclose: print "<A class='z-btn z-small-btn' onclick=this.parentElement.style.display='none' style='vertical-align:top; margin:8px;'><B>X</B></A>"
   print "</DIV>"
 
  def widgetRows(self, asources, aclose = False):
   lheight = 3 if len(asources) < 3 else len(asources)
   print "<DIV CLASS='z-graph' style='width:420px; height:{}px; float:left;'>".format(str(lheight * 240))
-  if aclose: print "<A class='z-btn z-small-btn' onclick=this.parentElement.style.display='none' style='float:right;'><B>X</B></A>"
+  if aclose: print "<A class='z-btn z-small-btn' onclick=this.parentElement.style.display='none' style='float:right; margin:8px;'><B>X</B></A>"
   for src in asources:
    self.printHtml(src)
    print "<BR>"
