@@ -14,7 +14,7 @@ __status__ = "Production"
 
 from sys import argv, exit, path as syspath
 syspath.append('/usr/local/sbin')
-from DeviceHandler import Device
+from DeviceHandler import Devices
 from SystemFunctions import simpleArgParser
 
 args = simpleArgParser(argv)
@@ -25,5 +25,5 @@ if len(args) < 2:
 start = args.get('start', '127.0.0.1')
 stop  = args.get('end', start)
 domain = args.get('domain','mgmt')
-dev = Device()
-dev.discoverDevices(start,stop,domain)
+devs = Devices()
+devs.discover(start,stop,domain)

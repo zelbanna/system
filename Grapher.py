@@ -124,21 +124,22 @@ class Grapher(object):
  #
  # Writes plugin info for devices found with DeviceHandler
  #
- def discoverDevices(self, ahandler = '127.0.0.1'):
+ def discover(self, ahandler = '127.0.0.1'):
   from os import chmod
   from time import time
-  from DeviceHandler import Device
+  from DeviceHandler import Devices
   start_time = int(time())
   try:
    with open(self._graphplug, 'w') as f:
     f.write("#!/bin/bash\n")
    chmod(self._graphplug, 0o777)
 
-   devs = Device()
+   devs = Devices()
+   devs.loadConf()
    entries = devs.getEntries()
    entries.sort()
    for key in entries:
-    t = Thread(target = self.detectDevice, args=[key, devs.getEntry(key), ahandler])
+    t = Thread(target = self._detect, args=[key, devs.getEntry(key), ahandler])
     t.start()
     if active_count() > 10:
      t.join()
@@ -146,11 +147,11 @@ class Grapher(object):
    sysLogMsg("graphDiscover: failure in processing Device entries: [{}]".format(str(err)))
   sysLogMsg("graphDiscover: Total time spent: {} seconds".format(int(time()) - start_time))
 
- ########################### Detect Devices ###########################
+ ########################### Detect Plugins ###########################
  #
  # Device must answer to ping(!) for system to continue
  #
- def detectDevice(self, aip, aentry, ahandler = '127.0.0.1'):
+ def _detect(self, aip, aentry, ahandler = '127.0.0.1'):
   if not pingOS(aip):
    return False
   from JRouter import JRouter  
@@ -165,7 +166,7 @@ class Grapher(object):
       activeinterfaces = jdev.getUpInterfaces()
       jdev.close()
      else:
-      sysLogMsg("detectDevice: impossible to connect to {}! [{} - {}]".format(fqdn,type,model))
+      sysLogMsg("Graph detect: impossible to connect to {}! [{} - {}]".format(fqdn,type,model))
     self._graphlock.acquire()      
     with open(self._graphplug, 'a') as graphfile:
      if self.getEntry(fqdn) == None:
@@ -185,7 +186,7 @@ class Grapher(object):
      graphfile.write('ln -s /usr/local/sbin/plugins/snmp__esxi    /etc/munin/plugins/snmp_' + fqdn + '_esxi\n')
     self._graphlock.release()
   except Exception as err:
-   sysLogMsg("Graph detectDevice - error: [{}]".format(str(err)))
+   sysLogMsg("Graph detect - error: [{}]".format(str(err)))
    return False
   return True
 

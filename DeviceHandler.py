@@ -16,7 +16,7 @@ __status__  = "Production"
 from SystemFunctions import pingOS, sysIPs2Range, sysLogDebug, sysLogMsg
 from threading import Lock, Thread, active_count
 
-class Device(object):
+class Devices(object):
 
  def __init__(self, aconfigfile = '/var/www/device.hosts.conf'):
   self._configfile = aconfigfile
@@ -27,7 +27,7 @@ class Device(object):
   return "Device({} {})".format(self._configfile, str(self._configitems))
 
  #
- # Config entry contains [ip]:  [ domain, fqdn, dns, snmp, model, type, is_graphed]
+ # Config entry contains [ip]:  [ domain, fqdn, dns, snmp, model, type, is_graphed, rack, unit, consoleport]
  #
  def loadConf(self):
   try:
@@ -52,7 +52,7 @@ class Device(object):
    self.loadConf()
   return self._configitems.keys()
    
- def discoverDevices(self, aStartIP, aStopIP, adomain):
+ def discover(self, aStartIP, aStopIP, adomain):
   from os import chmod
   from time import time
   start_time = int(time())
@@ -63,7 +63,7 @@ class Device(object):
     f.write("################################# HOSTS FOUND  ##################################\n")
    chmod(self._configfile, 0o666)
    for ip in sysIPs2Range(aStartIP, aStopIP):
-    t = Thread(target = self.detectDevice, args=[ip, adomain])
+    t = Thread(target = self._detect, args=[ip, adomain])
     t.start()
     # Slow down a little..
     if active_count() > 10:
@@ -72,11 +72,12 @@ class Device(object):
    sysLogMsg("Device discovery: Error [{}]".format(str(err)))
   sysLogMsg("Device discovery: Total time spent: {} seconds".format(int(time()) - start_time))
 
+
  ########################### Detect Devices ###########################
  #
  # Device must answer to ping(!) for system to continue
  #
- def detectDevice(self, aip, adomain):
+ def _detect(self, aip, adomain):
   if not pingOS(aip):
    return False
 
@@ -131,7 +132,7 @@ class Device(object):
 
   with open(self._configfile, 'a') as hostsfile:
    self._configlock.acquire()
-   hostsfile.write("{:<16} {:<10} {:<16} {:<12} {:<12} {:<12} {:<8} no\n".format(aip, adomain, fqdn, dns, snmp, model, type))
+   hostsfile.write("{:<16} {:<10} {:<16} {:<12} {:<12} {:<12} {:<8} no unknown unknown unknown\n".format(aip, adomain, fqdn, dns, snmp, model, type))
    self._configlock.release()
   return True
 
