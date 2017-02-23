@@ -24,11 +24,15 @@ class Devices(object):
   self._configitems = {}
 
  def __str__(self):
-  return "Device({} {})".format(self._configfile, str(self._configitems))
+  configitems = ""
+  for key, value in self._configitems.iteritems():
+   configitems = "{:<16} ".format(key) + " ".join(value) + "\n" + configitems
+  return "Device: {}\n{}".format(self._configfile, configitems.strip())
 
- #
- # Config entry contains [ip]:  [ domain, fqdn, dns, snmp, model, type, is_graphed, rack, unit, consoleport]
- #
+ def index(self,target):
+  position = { 'domain':0, 'fqdn':1, 'dns':2, 'snmp':3, 'model':4, 'type':5, 'is_graphed':6, 'rack':7, 'unit':8, 'consoleport':9 }
+  return position[target]
+
  def loadConf(self):
   try:
    with open(self._configfile) as conffile:
@@ -38,29 +42,61 @@ class Devices(object):
      if line.startswith('#'):
       continue
      entry = " ".join(line.split()).split()
-     self._configitems[entry[0]] = entry[1:8]
+     self._configitems[entry[0]] = entry[1:]
   except Exception as err:
    sysLogMsg("DeviceHandler loadConf: error reading config file - [{}]".format(str(err)))
-
+ 
  def getEntry(self, aentry):
-  if not self._configitems:
-   self.loadConf()
   return self._configitems.get(aentry,None)
-        
+
  def getEntries(self):
-  if not self._configitems:
-   self.loadConf()
-  return self._configitems.keys()
-   
+  keys = self._configitems.keys()
+  keys.sort()
+  return keys
+
+ def getTargetEntries(self, target, arg):
+  found = []
+  indx = self.index(target)
+  for key, value in self._configitems.iteritems():
+   if value[indx] == arg:
+    found.append(key)
+  found.sort()
+  return found
+
+ def addEntry(self, akey, aentry):
+  try:
+   with open(self._configfile,'a') as conffile:
+    conffile.write("{:<16} {}\n".format(akey," ".joint(aentry)))
+   self._configitems[akey] = aentry
+  except:
+   pass
+ 
+ #
+ # Lists in python are passed by ref so updating an entry is not requireing a lot of copy
+ # Just modify entry using index function directly and write to file :-)
+ def updateConf(self):
+  try:
+   with open(self._configfile,'w') as conffile:
+    conffile.write("################################# HOSTS DB ##################################\n")
+    for key, entry in self._configitems.iteritems():
+     conffile.write("{:<16} {}\n".format(key," ".join(entry)))
+  except Exception as err:
+   sysLogMsg("Devices : Error writing config: " + str(err))
+   return False
+  return True
+  
+ ##################################### Device Discovery and Detection ####################################
+ #
  def discover(self, aStartIP, aStopIP, adomain):
   from os import chmod
   from time import time
   start_time = int(time())
   sysLogMsg("Device discovery: " + aStartIP + " -> " + aStopIP + ", for domain '" + adomain + "'")
+
   # Reset hosts file
   try:
    with open(self._configfile, 'w') as f:
-    f.write("################################# HOSTS FOUND  ##################################\n")
+    f.write("################################# HOSTS DB ##################################\n")
    chmod(self._configfile, 0o666)
    for ip in sysIPs2Range(aStartIP, aStopIP):
     t = Thread(target = self._detect, args=[ip, adomain])
@@ -132,7 +168,7 @@ class Devices(object):
 
   with open(self._configfile, 'a') as hostsfile:
    self._configlock.acquire()
-   hostsfile.write("{:<16} {:<10} {:<16} {:<12} {:<12} {:<12} {:<8} no unknown unknown unknown\n".format(aip, adomain, fqdn, dns, snmp, model, type))
+   hostsfile.write("{:<16} {} {} {} {} {} {} no unknown unknown unknown\n".format(aip, adomain, fqdn, dns, snmp, model, type))
    self._configlock.release()
   return True
 

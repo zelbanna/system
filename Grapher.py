@@ -1,4 +1,3 @@
-
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
@@ -113,13 +112,13 @@ class Grapher(object):
   except Exception as err:
    sysLogMsg("Grapher updateEntry: Error [{}]".format(str(err)))
 
- def addConf(self, aentry, aupdate, ahandler = '127.0.0.1'):
+ def addEntry(self, akey, aupdate, ahandler = '127.0.0.1'):
   with open(self._configfile, 'a') as conffile:
    conffile.write("\n")
-   conffile.write("[" + aentry + "]\n")
+   conffile.write("[" + akey + "]\n")
    conffile.write("address " + ahandler + "\n")
    conffile.write("update " + aupdate + "\n")
-  self._configitems[aentry] = [ ahandler, aupdate ]
+  self._configitems[akey] = [ ahandler, aupdate ]
  
  #
  # Writes plugin info for devices found with DeviceHandler
@@ -170,7 +169,7 @@ class Grapher(object):
     self._graphlock.acquire()      
     with open(self._graphplug, 'a') as graphfile:
      if self.getEntry(fqdn) == None:
-      self.addConf(fqdn, ahandler, "no")
+      self.addEntry(fqdn, ahandler, "no")
      graphfile.write('ln -s /usr/local/sbin/plugins/snmp__{0} /etc/munin/plugins/snmp_{1}_{0}\n'.format(type,fqdn))
      graphfile.write('ln -s /usr/share/munin/plugins/snmp__uptime /etc/munin/plugins/snmp_' + fqdn + '_uptime\n')
      graphfile.write('ln -s /usr/share/munin/plugins/snmp__users  /etc/munin/plugins/snmp_' + fqdn + '_users\n')
@@ -180,7 +179,7 @@ class Grapher(object):
    elif type == "esxi":
     self._graphlock.acquire()
     with open(self._graphplug, 'a') as graphfile:
-     if not self.getEntry(fqdn):
+     if not self.addEntry(fqdn):
       agrapher.addConf(fqdn, ahandler, "no")
      graphfile.write('ln -s /usr/share/graph/plugins/snmp__uptime /etc/munin/plugins/snmp_' + fqdn + '_uptime\n')              
      graphfile.write('ln -s /usr/local/sbin/plugins/snmp__esxi    /etc/munin/plugins/snmp_' + fqdn + '_esxi\n')
