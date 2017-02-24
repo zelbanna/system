@@ -31,19 +31,19 @@ class Grapher(object):
  def __str__(self):
   return "ConfigFile:{} PluginFile:{} ConfigKeys:[{}]".format(self._configfile, self._graphplug, str(self._configitems.keys()))
 
- def printHtml(self, asource):
+ def _printGraphLink(self, asource):
   from time import time
   stop  = int(time())-300
   start = stop - 24*3600 
-  print "<A HREF='munin-cgi/munin-cgi-html/static/dynazoom.html?"
-  print "cgiurl_graph=/munin-cgi/munin-cgi-graph&plugin_name={0}&size_x=800&size_y=400&start_epoch={1}&stop_epoch={2}' target=sect_cont>".format(asource,str(start),str(stop))
+  print "<A target=main_cont HREF='munin-cgi/munin-cgi-html/static/dynazoom.html?"
+  print "cgiurl_graph=/munin-cgi/munin-cgi-graph&plugin_name={0}&size_x=800&size_y=400&start_epoch={1}&stop_epoch={2}'>".format(asource,str(start),str(stop))
   print "<IMG width=399 height=224 ALT='munin graph:{0}' SRC='/munin-cgi/munin-cgi-graph/{0}-day.png' /></A>".format(asource)
 
  def widgetCols(self, asources, aclose = False):
   lwidth = 3 if len(asources) < 3 else len(asources)
   print "<DIV CLASS='z-graph' style='width:{}px; height:240px; float:left;'>".format(str(lwidth * 420))
   for src in asources:
-   self.printHtml(src)
+   self._printGraphLink(src)
   if aclose: print "<A class='z-btn z-small-btn' onclick=this.parentElement.style.display='none' style='vertical-align:top; margin:8px;'><B>X</B></A>"
   print "</DIV>"
 
@@ -52,7 +52,7 @@ class Grapher(object):
   print "<DIV CLASS='z-graph' style='width:420px; height:{}px; float:left;'>".format(str(lheight * 240))
   if aclose: print "<A class='z-btn z-small-btn' onclick=this.parentElement.style.display='none' style='float:right; margin:8px;'><B>X</B></A>"
   for src in asources:
-   self.printHtml(src)
+   self._printGraphLink(src)
    print "<BR>"
   print "</DIV>"
 
