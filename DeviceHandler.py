@@ -14,13 +14,12 @@ __version__ = "5.0"
 __status__  = "Production"
 
 from SystemFunctions import pingOS, sysIPs2Range, sysLogDebug, sysLogMsg
-from threading import Lock, Thread, active_count
+from threading import Lock, Thread, active_count, enumerate
 
 class Devices(object):
 
  def __init__(self, aconfigfile = '/var/www/device.hosts.conf'):
   self._configfile = aconfigfile
-  self._configlock = Lock()
   self._configitems = {}
 
  def __str__(self):
@@ -75,11 +74,13 @@ class Devices(object):
  # Lists in python are passed by ref so updating an entry is not requireing a lot of copy
  # Just modify entry using index function directly and write to file :-)
  def updateConf(self):
+  from os import chmod
   try:
    with open(self._configfile,'w') as conffile:
     conffile.write("################################# HOSTS DB ##################################\n")
     for key, entry in self._configitems.iteritems():
      conffile.write("{:<16} {}\n".format(key," ".join(entry)))
+   chmod(self._configfile, 0o666)
   except Exception as err:
    sysLogMsg("Devices : Error writing config: " + str(err))
    return False
@@ -87,19 +88,24 @@ class Devices(object):
   
  ##################################### Device Discovery and Detection ####################################
  #
- def discover(self, aStartIP, aStopIP, adomain):
-  from os import chmod
+ # clear existing entries or not?
+ def discover(self, aStartIP, aStopIP, adomain, aclear = False):
   from time import time
+
   start_time = int(time())
   sysLogMsg("Device discovery: " + aStartIP + " -> " + aStopIP + ", for domain '" + adomain + "'")
 
-  # Reset hosts file
   try:
-   with open(self._configfile, 'w') as f:
-    f.write("################################# HOSTS DB ##################################\n")
-   chmod(self._configfile, 0o666)
    for ip in sysIPs2Range(aStartIP, aStopIP):
+    if aclear:
+     self._configitems.pop(ip,None)
+    else:
+     existing = self._configitems.get(ip,None)
+     if existing:
+      continue
+ 
     t = Thread(target = self._detect, args=[ip, adomain])
+    t.name = "Detect " + ip
     t.start()
     # Slow down a little..
     if active_count() > 10:
@@ -107,18 +113,28 @@ class Devices(object):
   except Exception as err:
    sysLogMsg("Device discovery: Error [{}]".format(str(err)))
   sysLogMsg("Device discovery: Total time spent: {} seconds".format(int(time()) - start_time))
-
+  
+  # Join all threads
+  wait = True
+  while wait:
+   if active_count() > 1:
+    t = enumerate()
+    t[1].join()
+   else:
+    wait = False
+  #  
+  # Update conf
+  self.updateConf()
 
  ########################### Detect Devices ###########################
  #
  # Device must answer to ping(!) for system to continue
  #
  def _detect(self, aip, adomain):
-  if not pingOS(aip):
-   return False
-
   from netsnmp import VarList, Varbind, Session
   from socket import gethostbyaddr
+  if not pingOS(aip):
+   return False
   
   try:
    # .1.3.6.1.2.1.1.1.0 : Device info
@@ -128,7 +144,7 @@ class Devices(object):
    session.get(devobjs)
   except:
    pass
- 
+   
   dns,fqdn,model,type = 'unknown','unknown','unknown','unknown'
   snmp = devobjs[1].val.lower() if devobjs[1].val else 'unknown'
   try:
@@ -166,10 +182,7 @@ class Devices(object):
     model = "other"
     type  = " ".join(infolist[0:4])
 
-  with open(self._configfile, 'a') as hostsfile:
-   self._configlock.acquire()
-   hostsfile.write("{:<16} {} {} {} {} {} {} no unknown unknown unknown\n".format(aip, adomain, fqdn, dns, snmp, model, type))
-   self._configlock.release()
+  self._configitems[aip] = [ adomain, fqdn, dns, snmp, model, type, 'no', 'unknown', 'unknown', 'unknown' ]
   return True
 
 #############################################################################
