@@ -44,14 +44,13 @@ class Grapher(object):
   print "<DIV CLASS='z-graph' style='width:{}px; height:240px; float:left;'>".format(str(lwidth * 420))
   for src in asources:
    self._printGraphLink(src)
-  if aclose: print "<A class='z-btn z-small-btn' onclick=this.parentElement.style.display='none' style='vertical-align:top; margin:8px;'><B>X</B></A>"
+  if aclose: print "<A class='z-btn z-small-btn' onclick=this.parentElement.style.display='none' style='margin:8px; float:right'><B>X</B></A>"
   print "</DIV>"
 
  def widgetRows(self, asources, aclose = False):
   lheight = 3 if len(asources) < 3 else len(asources)
   print "<DIV CLASS='z-graph' style='width:420px; height:{}px; float:left;'>".format(str(lheight * 240))
-  if aclose:
-   print "<A class='z-btn z-small-btn' onclick=this.parentElement.style.display='none' style='float:right; margin:8px;'><B>X</B></A>"
+  if aclose: print "<A class='z-btn z-small-btn' onclick=this.parentElement.style.display='none' style='margin:8px; float:right;'><B>X</B></A>"
   else:
    print "<BR style='display:block; margin:8px;'>"
   for src in asources:

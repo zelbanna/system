@@ -255,8 +255,8 @@ class EX(JRouter):
  def widgetSwitchTable(self):
   try:
    fdb = self.getSwitchTable()
-   print "<DIV CLASS='z-op-panel' style='overflow-y:auto; max-height:600px'>"
-   print "<TABLE CLASS='z-everyother'><TH>VLAN</TH><TH>MAC</TH><TH>Interface</TH><TH>Interface Description</TH>"
+   print "<DIV CLASS='z-table' style='overflow-y:auto; max-height:600px'>"
+   print "<TABLE><TH>VLAN</TH><TH>MAC</TH><TH>Interface</TH><TH>Interface Description</TH>"
    for entry in fdb:
     print "<TR><TD>" + "&nbsp;</TD><TD>".join(entry) + "</TD></TR>\n"
    print "<TR><TD COLSPAN=2></TD></TR></TABLE></DIV>"
