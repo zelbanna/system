@@ -38,8 +38,6 @@ class Devices(object):
     # Clear old dict first..
     self._configitems.clear()
     for line in conffile:
-     if line.startswith('#'):
-      continue
      entry = " ".join(line.split()).split()
      self._configitems[entry[0]] = entry[1:]
   except Exception as err:
@@ -77,7 +75,6 @@ class Devices(object):
   from os import chmod
   try:
    with open(self._configfile,'w') as conffile:
-    conffile.write("################################# HOSTS DB ##################################\n")
     for key, entry in self._configitems.iteritems():
      conffile.write("{:<16} {}\n".format(key," ".join(entry)))
    chmod(self._configfile, 0o666)
@@ -89,25 +86,25 @@ class Devices(object):
  ##################################### Device Discovery and Detection ####################################
  #
  # clear existing entries or not?
- def discover(self, aStartIP, aStopIP, adomain, aclear = False):
+ def discover(self, aStartIP, aStopIP, aDomain, aClear = False):
   from time import time
 
   start_time = int(time())
-  sysLogMsg("Device discovery: " + aStartIP + " -> " + aStopIP + ", for domain '" + adomain + "'")
+  sysLogMsg("Device discovery: " + aStartIP + " -> " + aStopIP + ", for domain '" + aDomain + "'")
 
-  if not aclear and not self._configitems:
+  if not aClear and not self._configitems:
    self.loadConf()
 
   try:
    for ip in sysIPs2Range(aStartIP, aStopIP):
-    if aclear:
+    if aClear:
      self._configitems.pop(ip,None)
     else:
      existing = self._configitems.get(ip,None)
      if existing:
       continue
  
-    t = Thread(target = self._detect, args=[ip, adomain])
+    t = Thread(target = self._detect, args=[ip, aDomain])
     t.name = "Detect " + ip
     t.start()
     # Slow down a little..
@@ -133,17 +130,17 @@ class Devices(object):
  #
  # Device must answer to ping(!) for system to continue
  #
- def _detect(self, aip, adomain):
+ def _detect(self, aIP, aDomain):
   from netsnmp import VarList, Varbind, Session
   from socket import gethostbyaddr
-  if not pingOS(aip):
+  if not pingOS(aIP):
    return False
   
   try:
    # .1.3.6.1.2.1.1.1.0 : Device info
    # .1.3.6.1.2.1.1.5.0 : Device name
    devobjs = VarList(Varbind('.1.3.6.1.2.1.1.1.0'), Varbind('.1.3.6.1.2.1.1.5.0'))
-   session = Session(Version = 2, DestHost = aip, Community = 'public', UseNumeric = 1, Timeout = 100000, Retries = 2)
+   session = Session(Version = 2, DestHost = aIP, Community = 'public', UseNumeric = 1, Timeout = 100000, Retries = 2)
    session.get(devobjs)
   except:
    pass
@@ -151,11 +148,11 @@ class Devices(object):
   dns,fqdn,model,type = 'unknown','unknown','unknown','unknown'
   snmp = devobjs[1].val.lower() if devobjs[1].val else 'unknown'
   try:
-   dns = gethostbyaddr(aip)[0].split('.')[0].lower()
+   dns = gethostbyaddr(aIP)[0].split('.')[0].lower()
    fqdn = dns
   except:
    fqdn = snmp
-  fqdn = fqdn.split('.')[0] + "." + adomain if not (adomain in fqdn) else fqdn
+  fqdn = fqdn.split('.')[0] + "." + aDomain if not (aDomain in fqdn) else fqdn
 
   if devobjs[0].val:
    infolist = devobjs[0].val.split()
@@ -185,7 +182,7 @@ class Devices(object):
     model = "other"
     type  = " ".join(infolist[0:4])
 
-  self._configitems[aip] = [ adomain, fqdn, dns, snmp, model, type, 'no', 'unknown', 'unknown', 'unknown' ]
+  self._configitems[aIP] = [ aDomain, fqdn, dns, snmp, model, type, 'no', 'unknown', 'unknown', 'unknown' ]
   return True
 
 #############################################################################
