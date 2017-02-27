@@ -91,7 +91,7 @@ class Grapher(object):
  def getEntries(self):
   if not self._configitems:
    self.loadConf()
-  return self._configitems.keys()
+  return sorted(self._configitems.keys())
   
  def updateEntry(self, aentry, astate):
   oldstate = "no" if astate == "yes" else "yes"
@@ -136,9 +136,7 @@ class Grapher(object):
 
    devs = Devices()
    devs.loadConf()
-   entries = devs.getEntries()
-   entries.sort()
-   for key in entries:
+   for key in devs.getEntries():
     t = Thread(target = self._detect, args=[key, devs.getEntry(key), ahandler])
     t.start()
     if active_count() > 10:

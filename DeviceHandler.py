@@ -13,7 +13,7 @@ __author__  = "Zacharias El Banna"
 __version__ = "5.0"
 __status__  = "Production"
 
-from SystemFunctions import pingOS, sysIPs2Range, sysLogDebug, sysLogMsg
+from SystemFunctions import pingOS, sysIPs2Range, sysIP2Int, sysLogDebug, sysLogMsg
 from threading import Lock, Thread, active_count, enumerate
 
 class Devices(object):
@@ -40,8 +40,10 @@ class Devices(object):
   #
   # Sort?
   #
-  for key, values in self._configitems.iteritems():
-   print "<TR><TD><A TARGET={0} HREF=device-web.cgi?op=deviceinifo&id={1}>{1}</A></TD><TD>{2}</TD><TD>{3}</TD></TR>".format(view, key, values[1], values[4]) 
+  keys = self.getEntries()
+  for key in keys:
+   values = self._configitems[key]
+   print "<TR><TD><A TARGET={0} HREF=device-web.cgi?op=deviceinifo&id={1}>{1}</A></TD><TD>{2}</TD><TD>{3}</TD></TR>".format(view, key, values[1], values[4])
   print "</TABLE>"
   print "</DIV>"
 
@@ -63,7 +65,7 @@ class Devices(object):
 
  def getEntries(self):
   keys = self._configitems.keys()
-  keys.sort()
+  keys.sort(key=sysIP2Int)
   return keys
 
  def getTargetEntries(self, target, arg):
@@ -72,7 +74,7 @@ class Devices(object):
   for key, value in self._configitems.iteritems():
    if value[indx] == arg:
     found.append(key)
-  found.sort()
+  found.sort(key=sysIP2Int)
   return found
 
  def addEntry(self, akey, aentry):
@@ -107,6 +109,9 @@ class Devices(object):
 
   start_time = int(time())
   sysLogMsg("Device discovery: " + aStartIP + " -> " + aStopIP + ", for domain '" + adomain + "'")
+
+  if not aclear and not self._configitems:
+   self.loadConf()
 
   try:
    for ip in sysIPs2Range(aStartIP, aStopIP):
