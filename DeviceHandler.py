@@ -32,21 +32,6 @@ class Devices(object):
   position = { 'domain':0, 'fqdn':1, 'dns':2, 'snmp':3, 'model':4, 'type':5, 'is_graphed':6, 'rack':7, 'unit':8, 'consoleport':9 }
   return position[target]
 
- # Add target :-)
- def widgetDeviceTable(self, view='dev_cont'):
-  print "<DIV CLASS=z-table>"             
-  print "<TABLE WIDTH=340>"
-  print "<TR><TH>IP</TH><TH>FQDN</TH><TH>Model</TH></TR>"
-  #
-  # Sort?
-  #
-  keys = self.getEntries()
-  for key in keys:
-   values = self._configitems[key]
-   print "<TR><TD><A TARGET={0} HREF=device-web.cgi?op=deviceinifo&id={1}>{1}</A></TD><TD>{2}</TD><TD>{3}</TD></TR>".format(view, key, values[1], values[4])
-  print "</TABLE>"
-  print "</DIV>"
-
  def loadConf(self):
   try:
    with open(self._configfile) as conffile:
