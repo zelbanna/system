@@ -11,7 +11,7 @@ __version__ = "6.0"
 __status__ = "Production"
 
 from PasswordContainer import esxi_username, esxi_password
-from GenLib import sysLogMsg, sysLockPidFile, sysReleasePidFile, sysGetHost
+from GenLib import sys_log_msg, sys_lock_pidfile, sys_release_pidfile, sys_get_host
 from netsnmp import VarList, Varbind, Session
 from select import select
 from os import remove, path
@@ -22,6 +22,8 @@ from os import remove, path
 #
 
 class ESXi(object):
+
+ _vmstatemap  = { "1" : "powered on", "2" : "powered off", "3" : "suspended", "powered on" : "1", "powered off" : "2", "suspended" : "3" }
  
  #
  # Each ESXi Server has an IP and probably KVM means for out of band access.
@@ -40,7 +42,6 @@ class ESXi(object):
   self._kvmip   = None
   self._sshclient = None
   self.community = "public"
-  self.vmstatemap  = { "1" : "powered on", "2" : "powered off", "3" : "suspended", "powered on" : "1", "powered off" : "2", "suspended" : "3" }
   self.backuplist = []
   self.statefile = "/var/tmp/esxi." + self.hostname + ".vmstate.log"
   self._threads = {}
@@ -49,7 +50,7 @@ class ESXi(object):
   return str(self.hostname) + " SSHConnected:" + str(self._sshclient != None)  + " SNMP_Community:" + self.community + " Backuplist:" + str(self.backuplist) + " statefile:" + self.statefile + " Threads:" + str(self._threads.keys())
 
  def log(self,amsg):
-  sysLogMsg(amsg, "/var/log/network/" + self.hostname + ".operations.log")
+  sys_log_msg(amsg, "/var/log/network/" + self.hostname + ".operations.log")
 
  def threading(self, aoperation):
   from threading import Thread
@@ -64,28 +65,28 @@ class ESXi(object):
    self.log("threading: Illegal operation passed [{}]".format(aoperation))
 
  # Different FQDN for KVM types
- def getKVMType(self, adefaulttype = None):
+ def get_kvm_type(self, adefaulttype = None):
   if self._kvmip and self._kvmtype:
    return self._kvmtype, self._kvmip
   elif self.domain:
    for type in ['amt','ipmi','kvm']:
-    ip = sysGetHost("{}-{}.{}".format(self.hostname,type,self.domain))
+    ip = sys_get_host("{}-{}.{}".format(self.hostname,type,self.domain))
     if ip:
      self._kvmip = ip
      self._kvmtype = type
      return type, ip
   return adefaulttype, "{}-{}.{}".format(self.hostname,adefaulttype,self.domain)
 
- def createLock(self,atime):
-  sysLockPidFile("/tmp/esxi." + self.hostname + ".vm.pid",atime)
+ def create_lock(self,atime):
+  sys_lock_pidfile("/tmp/esxi." + self.hostname + ".vm.pid",atime)
 
- def releaseLock(self):
-  sysReleasePidFile("/tmp/esxi." + self.hostname + ".vm.pid")
+ def release_lock(self):
+  sys_release_pidfile("/tmp/esxi." + self.hostname + ".vm.pid")
 
  #
  # ESXi ssh interaction - Connect() send, send,.. Close()
  #
- def sshConnect(self):
+ def ssh_connect(self):
   if not self._sshclient:
    from paramiko import SSHClient, AutoAddPolicy, AuthenticationException
    try:
@@ -99,7 +100,7 @@ class ESXi(object):
     return False
   return True
 
- def sshSend(self,amessage):
+ def ssh_send(self,amessage):
   if self._sshclient:
    output = ""
    self.log("sendESXi: [" + amessage + "]")
@@ -114,7 +115,7 @@ class ESXi(object):
    self.log("Error: trying to send to closed channel")
    self._sshclient = None
 
- def sshClose(self):
+ def ssh_close(self):
   if self._sshclient:
    try:
     self._sshclient.close()
@@ -122,7 +123,7 @@ class ESXi(object):
    except Exception as err:
     self.log( "Close error: " + str(err))
 
- def getIdVM(self, aname):
+ def get_id_vm(self, aname):
   try:
    vmnameobjs = VarList(Varbind('.1.3.6.1.4.1.6876.2.1.1.2'))
    session = Session(Version = 2, DestHost = self.hostname, Community = self.community, UseNumeric = 1, Timeout = 100000, Retries = 2)
@@ -134,10 +135,10 @@ class ESXi(object):
    pass
   return -1
 
- def getStateStr(self, astate):
-  return self.vmstatemap[astate]
+ def get_state_str(self, astate):
+  return self._vmstatemap[astate]
  
- def getStateVM(self, aid):
+ def get_state_vm(self, aid):
   try:
    vmstateobj = VarList(Varbind(".1.3.6.1.4.1.6876.2.1.1.6." + str(aid)))
    session = Session(Version = 2, DestHost = self.hostname, Community = self.community, UseNumeric = 1, Timeout = 100000, Retries = 2)
@@ -147,7 +148,7 @@ class ESXi(object):
    pass
   return "unknown"
 
- def getVMs(self):
+ def get_vms(self):
   #
   # Returns a list with tuples of strings: [ vm.id, vm.name, vm.powerstate, vm.to_be_backedup ]
   #
@@ -160,7 +161,7 @@ class ESXi(object):
    session.walk(vmstateobjs)
    index = 0
    for result in vmnameobjs:
-    statetuple = [result.iid, result.val, self.vmstatemap[vmstateobjs[index].val]]
+    statetuple = [result.iid, result.val, self._vmstatemap[vmstateobjs[index].val]]
     statetuple.append(result.val in self.backuplist)
     statelist.append(statetuple)
     index = index + 1
@@ -168,26 +169,23 @@ class ESXi(object):
    pass
   return statelist
 
- def widgetVMs(self):
-  pass
-
  #
  # Simple backup schema for ghettoVCB - assumption is that there is a file on the ESXi <abackupfile> that
  #  contains a list of names of virtual machines to backup
  # 
- def backupLoadFile(self, abackupfile):
+ def backup_load_file(self, abackupfile):
   try:
-   data = self.sshSend("cat " + abackupfile)
+   data = self.ssh_send("cat " + abackupfile)
    self.backuplist = data.split()
   except:
    return False
   return True   
  
- def backupAddVM(self, abackupfile, avmname):
+ def backup_add_vm(self, abackupfile, avmname):
   try:
-   self.backupLoadFile(abackupfile)
+   self.backup_load_file(abackupfile)
    if not avmname in self.backuplist:
-    self.sshSend("echo '" + avmname + "' >> " + abackupfile)
+    self.ssh_send("echo '" + avmname + "' >> " + abackupfile)
   except:
    pass
 
@@ -196,15 +194,15 @@ class ESXi(object):
  #
  #
 
- def startupVMs(self):
+ def startup_vms(self):
   from time import sleep
   # Power up everything in the statefile
   if not path.isfile(self.statefile):
-   self.log("startupVMs: Has no reason to run powerUp as no VMs were shutdown..")
+   self.log("startup_vms: Has no reason to run powerUp as no VMs were shutdown..")
    return False
   
-  self.createLock(2)
-  self.sshConnect()
+  self.create_lock(2)
+  self.ssh_connect()
 
   statefilefd = open(self.statefile)
   for line in statefilefd:
@@ -214,13 +212,13 @@ class ESXi(object):
    else:
     vm = line.strip('\n').split(',')
     if vm[2] == "1" and not vm[1] == "management" :
-     esxi.sshSend("vim-cmd vmsvc/power.on " + vm[0])
+     esxi.ssh_send("vim-cmd vmsvc/power.on " + vm[0])
   remove(sfile)
-  self.sshClose()
-  self.releaseLock()
+  self.ssh_close()
+  self.release_lock()
   return True
 
- def shutdownVMs(self):
+ def shutdown_vms(self):
   from time import sleep
   # Power down everything and save to the statefile, APCupsd statemachine:
   #
@@ -243,11 +241,11 @@ class ESXi(object):
 
   deplist=[]
   freelist=[]
-  self.createLock(2)
+  self.create_lock(2)
 
   try:
    vmlist = self.getVMs()
-   self.sshConnect()
+   self.ssh_connect()
    # Start go through all vms
    #
    for vm in vmlist:
@@ -257,7 +255,7 @@ class ESXi(object):
       deplist.append(vm)
      elif vm[1] != "management":
       freelist.append(vm)
-      self.sshSend("vim-cmd vmsvc/power.shutdown " + vm[0])
+      self.ssh_send("vim-cmd vmsvc/power.shutdown " + vm[0])
 
    # Write statelog
    #
@@ -273,28 +271,28 @@ class ESXi(object):
    #
    sleep(20)
    for vm in deplist:
-    self.sshSend("vim-cmd vmsvc/power.shutdown " + vm[0])
+    self.ssh_send("vim-cmd vmsvc/power.shutdown " + vm[0])
 
    # Powering off machines that doesn't respond too well to guest shutdowns
    #
    sleep(60)
-   vmlist = self.getVMs()
+   vmlist = self.get_vms()
    for vm in vmlist:
     if vm[2] == "1":
      if vm[1].startswith("nas"):
       self.log("Shutdown of NAS vm not completed..")
      elif vm[1].startswith("pulse"):
-      self.sshSend("vim-cmd vmsvc/power.off " + vm[0])
+      self.ssh_send("vim-cmd vmsvc/power.off " + vm[0])
       self.log("shutdownVMs: powering off machine: {}!".format(vm[0]))
      elif not vm[1] == "management":
       # Correct? or pass?
-      self.sshSend("vim-cmd vmsvc/power.suspend " + vm[0])
+      self.ssh_send("vim-cmd vmsvc/power.suspend " + vm[0])
       self.log("shutdownVMs: suspending machine: {}!".format(vm[0]))
 
    # Done, finish off local machine
    #
-   self.sshClose()
-   self.releaseLock()
+   self.ssh_close()
+   self.release_lock()
    self.log("shutdownVMs: Done! Ready for powerloss, awaiting system halt")
   except Exception as vmerror:
    self.log("ERROR: " + str(vmerror))

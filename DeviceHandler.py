@@ -10,16 +10,25 @@ Exports:
 
 """  
 __author__  = "Zacharias El Banna"
-__version__ = "6.0"
+__version__ = "10.0"
 __status__  = "Production"
 
-from GenLib import pingOS, sysIPs2Range, sysIP2Int, sysLogDebug, sysLogMsg
+from GenLib import ping_os, sys_ips2range, sys_ip2int, sys_log_msg
 from threading import Lock, Thread, active_count, enumerate
 
 class Devices(object):
 
  _position = { 'domain':0, 'fqdn':1, 'dns':2, 'snmp':3, 'model':4, 'type':5, 'is_graphed':6, 'rack':7, 'unit':8, 'consoleport':9 }
- _devtypes = [ 'ex', 'qfx', 'srx', 'mx', 'wlc', 'esxi' ] 
+
+ # [0] == 'operated' means using a separate file for operations
+ _typefun  = {
+  'ex':  [ 'pingRPC', 'getFacts', 'getUpInterfaces', 'widgetSwitchTable' ],
+  'qfx': [ 'pingRPC', 'getFacts', 'getUpInterfaces' ],
+  'srx': [ 'pingRPC', 'getFacts', 'getUpInterfaces' ],
+  'mx':  [ 'pingRPC', 'getFacts', 'getUpInterfaces' ],
+  'wlc': [ 'widgetSwitchTable' ],
+  'esxi':[ 'operated' ]
+  }
  
  def __init__(self, aconfigfile = '/var/www/device.hosts.conf'):
   self._configfile = aconfigfile
@@ -31,13 +40,16 @@ class Devices(object):
    configitems = "{:<16} ".format(key) + " ".join(value) + "\n" + configitems
   return "Device: {}\n{}".format(self._configfile, configitems.strip())
 
- def getIndex(self,target):
+ def get_index(self,target):
   return self._position[target]
 
- def isManagedType(self,atype):
-  return atype in self._devtypes
+ def is_managed_type(self,atype):
+  return atype in self._typefun.keys()
 
- def loadConf(self):
+ def get_type_functions(self, atype):
+  return self._typefun.get(atype,None)
+
+ def load_conf(self):
   try:
    with open(self._configfile) as conffile:
     # Clear old dict first..
@@ -46,9 +58,9 @@ class Devices(object):
      entry = " ".join(line.split()).split()
      self._configitems[entry[0]] = entry[1:]
   except Exception as err:
-   sysLogMsg("DeviceHandler loadConf: error reading config file - [{}]".format(str(err)))
+   sys_log_msg("DeviceHandler loadConf: error reading config file - [{}]".format(str(err)))
 
- def quickEntry(self, akey):
+ def quick_entry(self, akey):
   entry = None
   try:
    with open(self._configfile) as conffile:
@@ -58,27 +70,27 @@ class Devices(object):
       break
    # Close properly and then..
   except Exception as err:
-   sysLogMsg("DeviceHandler loadEntry: error reading config file - [{}]".format(str(err)))
+   sys_log_msg("DeviceHandler loadEntry: error reading config file - [{}]".format(str(err)))
   return entry[1:] 
  
- def getEntry(self, akey):
+ def get_entry(self, akey):
   return self._configitems.get(akey,None)
 
- def getEntries(self):
+ def get_entries(self):
   keys = self._configitems.keys()
-  keys.sort(key=sysIP2Int)
+  keys.sort(key=sys_ip2int)
   return keys
 
- def getTargetEntries(self, target, arg):
+ def get_target_entries(self, target, arg):
   found = []
-  indx = self.getIndex(target)
+  indx = self._position[target]
   for key, value in self._configitems.iteritems():
    if value[indx] == arg:
     found.append(key)
-  found.sort(key=sysIP2Int)
+  found.sort(key=sys_ip2int)
   return found
 
- def addEntry(self, akey, aentry):
+ def add_entry(self, akey, aentry):
   try:
    with open(self._configfile,'a') as conffile:
     conffile.write("{:<16} {}\n".format(akey," ".joint(aentry)))
@@ -89,7 +101,7 @@ class Devices(object):
  #
  # Lists in python are passed by ref so updating an entry is not requireing a lot of copy
  # Just modify entry using index function directly and write to file :-)
- def updateConf(self):
+ def update_conf(self):
   from os import chmod
   try:
    with open(self._configfile,'w') as conffile:
@@ -97,7 +109,7 @@ class Devices(object):
      conffile.write("{:<16} {}\n".format(key," ".join(entry)))
    chmod(self._configfile, 0o666)
   except Exception as err:
-   sysLogMsg("Devices : Error writing config: " + str(err))
+   sys_log_msg("Devices : Error writing config: " + str(err))
    return False
   return True
   
@@ -108,13 +120,13 @@ class Devices(object):
   from time import time
 
   start_time = int(time())
-  sysLogMsg("Device discovery: " + aStartIP + " -> " + aStopIP + ", for domain '" + aDomain + "'")
+  sys_log_msg("Device discovery: " + aStartIP + " -> " + aStopIP + ", for domain '" + aDomain + "'")
 
   if not aClear and not self._configitems:
-   self.loadConf()
+   self.load_conf()
 
   try:
-   for ip in sysIPs2Range(aStartIP, aStopIP):
+   for ip in sys_ips2range(aStartIP, aStopIP):
     if aClear:
      self._configitems.pop(ip,None)
     else:
@@ -129,8 +141,8 @@ class Devices(object):
     if active_count() > 10:
      t.join()
   except Exception as err:
-   sysLogMsg("Device discovery: Error [{}]".format(str(err)))
-  sysLogMsg("Device discovery: Total time spent: {} seconds".format(int(time()) - start_time))
+   sys_log_msg("Device discovery: Error [{}]".format(str(err)))
+  sys_log_msg("Device discovery: Total time spent: {} seconds".format(int(time()) - start_time))
   
   # Join all threads
   wait = True
@@ -142,7 +154,7 @@ class Devices(object):
     wait = False
   #  
   # Update conf
-  self.updateConf()
+  self.update_conf()
 
  ########################### Detect Devices ###########################
  #
@@ -151,7 +163,7 @@ class Devices(object):
  def _detect(self, aIP, aDomain):
   from netsnmp import VarList, Varbind, Session
   from socket import gethostbyaddr
-  if not pingOS(aIP):
+  if not ping_os(aIP):
    return False
   
   try:
@@ -191,11 +203,11 @@ class Devices(object):
     model = "esxi"
     type  = "esxi"
    elif infolist[0] == "Linux":
-    model = "linux"
+    type = "linux"
     if "Debian" in devobjs[0].val:
-     type = "debian"
+     model = "debian"
     else:
-     type = "generic"
+     model = "generic"
    else:
     model = "other"
     type  = " ".join(infolist[0:4])

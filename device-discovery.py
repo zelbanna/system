@@ -15,9 +15,9 @@ __status__ = "Production"
 from sys import argv, exit, path as syspath
 syspath.append('/usr/local/sbin')
 from DeviceHandler import Devices
-from GenLib import simpleArgParser
+from GenLib import simple_arg_parser
 
-args = simpleArgParser(argv)
+args = simple_arg_parser(argv)
 if len(args) < 2:
  print argv[0] + " --domain <domain/suffix> --start <start/single ip> [--end <end ip>]"
  print argv[0] + "  --domain: default: 'mgmt'"

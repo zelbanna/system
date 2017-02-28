@@ -13,7 +13,7 @@ __author__ = "Zacharias El Banna"
 __version__ = "5.0"
 __status__ = "Production"
 
-from GenLib import sysLogDebug, sysLogMsg, pingOS
+from GenLib import sys_log_msg, ping_os
 from threading import Lock, Thread, active_count
 
 ####################################### Grapher Class ##########################################
@@ -31,7 +31,7 @@ class Grapher(object):
  def __str__(self):
   return "ConfigFile:{} PluginFile:{} ConfigKeys:[{}]".format(self._configfile, self._graphplug, str(self._configitems.keys()))
 
- def _printGraphLink(self, asource):
+ def _print_graph_link(self, asource):
   from time import time
   stop  = int(time())-300
   start = stop - 24*3600 
@@ -39,28 +39,28 @@ class Grapher(object):
   print "cgiurl_graph=/munin-cgi/munin-cgi-graph&plugin_name={0}&size_x=800&size_y=400&start_epoch={1}&stop_epoch={2}'>".format(asource,str(start),str(stop))
   print "<IMG width=399 height=224 ALT='munin graph:{0}' SRC='/munin-cgi/munin-cgi-graph/{0}-day.png' /></A>".format(asource)
 
- def widgetCols(self, asources, aclose = False):
+ def widget_cols(self, asources, aclose = False):
   lwidth = 3 if len(asources) < 3 else len(asources)
   print "<DIV CLASS='z-graph' style='width:{}px; height:240px; float:left;'>".format(str(lwidth * 420))
   for src in asources:
-   self._printGraphLink(src)
+   self._print_graph_link(src)
   if aclose: print "<A class='z-btn z-small-btn' onclick=this.parentElement.style.display='none' style='margin:8px; float:right'><B>X</B></A>"
   print "</DIV>"
 
- def widgetRows(self, asources, aclose = False):
+ def widget_rows(self, asources, aclose = False):
   lheight = 3 if len(asources) < 3 else len(asources)
   print "<DIV CLASS='z-graph' style='width:420px; height:{}px; float:left;'>".format(str(lheight * 240))
   if aclose: print "<A class='z-btn z-small-btn' onclick=this.parentElement.style.display='none' style='margin:8px; float:right;'><B>X</B></A>"
   else:
    print "<BR style='display:block; margin:8px;'>"
   for src in asources:
-   self._printGraphLink(src)
+   self._print_graph_link(src)
   print "</DIV>"
 
  #
  # Config items contains entry: [ handler, updatestate ]
  #
- def loadConf(self):
+ def load_conf(self):
   # read until find [ ... ] then read two more lines, finally add to dict
   with open(self._configfile) as conffile:
    # Clear old dict first..
@@ -83,17 +83,17 @@ class Grapher(object):
     elif line.startswith("[") and line.endswith("]"):
      entry = line[1:-1]
 
- def getEntry(self, aentry):
+ def get_entry(self, aentry):
   if not self._configitems:
-   self.loadConf()
+   self.load_conf()
   return self._configitems.get(aentry,None)
 
- def getEntries(self):
+ def get_entries(self):
   if not self._configitems:
-   self.loadConf()
+   self.load_conf()
   return sorted(self._configitems.keys())
   
- def updateEntry(self, aentry, astate):
+ def update_entry(self, aentry, astate):
   oldstate = "no" if astate == "yes" else "yes"
   try:
    with open(self._configfile, 'r') as conffile:
@@ -111,9 +111,9 @@ class Grapher(object):
      data[1] = astate
      self._configitems[aentry] = data
   except Exception as err:
-   sysLogMsg("Grapher updateEntry: Error [{}]".format(str(err)))
+   sys_log_msg("Grapher updateEntry: Error [{}]".format(str(err)))
 
- def addEntry(self, akey, aupdate, ahandler = '127.0.0.1'):
+ def add_entry(self, akey, aupdate, ahandler = '127.0.0.1'):
   with open(self._configfile, 'a') as conffile:
    conffile.write("\n")
    conffile.write("[" + akey + "]\n")
@@ -135,24 +135,24 @@ class Grapher(object):
    chmod(self._graphplug, 0o777)
 
    devs = Devices()
-   devs.loadConf()
-   for key in devs.getEntries():
-    t = Thread(target = self._detect, args=[key, devs.getEntry(key), ahandler])
+   devs.load_conf()
+   for key in devs.get_entries():
+    t = Thread(target = self._detect, args=[key, devs.get_entry(key), ahandler])
     t.start()
     if active_count() > 10:
      t.join()
   except Exception as err:
-   sysLogMsg("graphDiscover: failure in processing Device entries: [{}]".format(str(err)))
-  sysLogMsg("graphDiscover: Total time spent: {} seconds".format(int(time()) - start_time))
+   sys_log_msg("graphDiscover: failure in processing Device entries: [{}]".format(str(err)))
+  sys_log_msg("graphDiscover: Total time spent: {} seconds".format(int(time()) - start_time))
 
  ########################### Detect Plugins ###########################
  #
  # Device must answer to ping(!) for system to continue
  #
  def _detect(self, aip, aentry, ahandler = '127.0.0.1'):
-  if not pingOS(aip):
+  if not ping_os(aip):
    return False
-  from JRouter import JRouter  
+  from JRouter import JRouter
   activeinterfaces = []
   type = aentry[5]
   fqdn = aentry[1]
@@ -161,14 +161,14 @@ class Grapher(object):
     if not type == 'wlc':
      jdev = JRouter(aip)
      if jdev.connect():
-      activeinterfaces = jdev.getUpInterfaces()
+      activeinterfaces = jdev.get_up_interfaces()
       jdev.close()
      else:
-      sysLogMsg("Graph detect: impossible to connect to {}! [{} - {}]".format(fqdn,type,model))
-    self._graphlock.acquire()      
+      sys_log_msg("Graph detect: impossible to connect to {}! [{} - {}]".format(fqdn,type,model))
+    self._graphlock.acquire()
     with open(self._graphplug, 'a') as graphfile:
-     if self.getEntry(fqdn) == None:
-      self.addEntry(fqdn, ahandler, "no")
+     if self.get_entry(fqdn) == None:
+      self.add_entry(fqdn, ahandler, "no")
      graphfile.write('ln -s /usr/local/sbin/plugins/snmp__{0} /etc/munin/plugins/snmp_{1}_{0}\n'.format(type,fqdn))
      graphfile.write('ln -s /usr/share/munin/plugins/snmp__uptime /etc/munin/plugins/snmp_' + fqdn + '_uptime\n')
      graphfile.write('ln -s /usr/share/munin/plugins/snmp__users  /etc/munin/plugins/snmp_' + fqdn + '_users\n')
@@ -178,13 +178,13 @@ class Grapher(object):
    elif type == "esxi":
     self._graphlock.acquire()
     with open(self._graphplug, 'a') as graphfile:
-     if not self.addEntry(fqdn):
-      agrapher.addConf(fqdn, ahandler, "no")
+     if not self.add_entry(fqdn):
+      agrapher.add_conf(fqdn, ahandler, "no")
      graphfile.write('ln -s /usr/share/graph/plugins/snmp__uptime /etc/munin/plugins/snmp_' + fqdn + '_uptime\n')              
      graphfile.write('ln -s /usr/local/sbin/plugins/snmp__esxi    /etc/munin/plugins/snmp_' + fqdn + '_esxi\n')
     self._graphlock.release()
   except Exception as err:
-   sysLogMsg("Graph detect - error: [{}]".format(str(err)))
+   sys_log_msg("Graph detect - error: [{}]".format(str(err)))
    return False
   return True
 

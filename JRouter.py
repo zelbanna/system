@@ -16,7 +16,7 @@ __version__ = "5.0"
 __status__ = "Production"
 
 from PasswordContainer import netconf_username, netconf_password
-from GenLib import sysLogMsg
+from GenLib import sys_log_msg
 from netsnmp import VarList, Varbind, Session
 from lxml import etree
 
@@ -34,7 +34,7 @@ class WLC(object):
  def __str__(self):
   return "Hostname: {} Community: {}".format(self._hostname, self._community)
 
- def widgetSwitchTable(self):
+ def widget_switch_table(self):
   from socket import gethostbyaddr
   try:
    # Length of below is used to offset ip address (32) + 1 and mac base (33) + 1 
@@ -88,7 +88,7 @@ class JRouter(object):
    self._model = self._router.facts['model']
    self._version = self._router.facts['version']
   except Exception as err:
-   sysLogMsg("System Error - Unable to connect to router: " + str(err))
+   sys_log_msg("System Error - Unable to connect to router: " + str(err))
    return False
   return True
 
@@ -96,35 +96,35 @@ class JRouter(object):
   try:
    self._router.close()
   except Exception as err:
-   sysLogMsg("System Error - Unable to properly close router connection: " + str(err))
+   sys_log_msg("System Error - Unable to properly close router connection: " + str(err))
  
- def pingRPC(self,ip):
+ def ping_rpc(self,ip):
   result = self._router.rpc.ping(host=ip, count='1')
   return len(result.xpath("ping-success"))
 
- def getRPC(self):
+ def get_rpc(self):
   return self._router.rpc
 
- def getDev(self):
+ def get_dev(self):
   return self._router
 
- def getInfo(self,akey):
+ def get_facts(self,akey):
   return self._router.facts[akey]
 
- def getType(self):
+ def get_type(self):
   return self._type
 
- def loadInterfacesName(self):
+ def load_interfaces_name(self):
   interfaces = self._router.rpc.get_interface_information(descriptions=True)
   for interface in interfaces:
    ifd         = interface.find("name").text
    description = interface.find("description").text
    self._interfacesname[ifd] = description
 
- def getInterfaceName(self, aifl):
+ def get_interface_name(self, aifl):
   return self._interfacesname.get(aifl.split('.')[0],None)
 
- def getUpInterfaces(self):
+ def get_up_interfaces(self):
   interfaces = self._router.rpc.get_interface_information()
   result = []
   for ifd in interfaces:
@@ -136,7 +136,7 @@ class JRouter(object):
  #
  # SNMP is much smoother than Netconf for some things :-)
  #
- def quickLoad(self):
+ def quick_load(self):
   try:
    devobjs = VarList(Varbind('.1.3.6.1.2.1.1.1.0'))
    session = Session(Version = 2, DestHost = self._router._hostname, Community = 'public', UseNumeric = 1, Timeout = 100000, Retries = 2)
@@ -153,7 +153,7 @@ class JRouter(object):
    elif "mx" in self._model:
     self._type = "MX"
   except:
-   pass         
+   pass
 
 ################################ SRX Object #####################################
 
@@ -169,7 +169,7 @@ class SRX(JRouter):
  def __str__(self):
   return JRouter.__str__(self) + " DNS:" + str(self.dnslist) + " IP:" + self.dhcpip + " IPsec:" + str(self.tunnels)
 
- def loadDHCP(self):
+ def load_dhcp(self):
   try:
    result = self._router.rpc.get_dhcp_client_information() 
    addresslist = result.xpath(".//address-obtained")
@@ -177,18 +177,18 @@ class SRX(JRouter):
     self.dnslist = result.xpath(".//dhcp-option[dhcp-option-name='name-server']/dhcp-option-value")[0].text.strip('[] ').replace(", "," ").split()
     self.dhcpip = addresslist[0].text
   except Exception as err:
-   sysLogMsg("System Error - verifying DHCP assignment: " + str(err))
+   sys_log_msg("System Error - verifying DHCP assignment: " + str(err))
    return False
   return True
 
- def renewDHCP(self, interface):
+ def renew_dhcp(self, interface):
   try:
    return self._router.rpc.cli("request system services dhcp renew " + interface, format='text')
   except Exception as err:
-   sysLogMsg("System Error - cannot renew DHCP lease: " +str(err))
+   sys_log_msg("System Error - cannot renew DHCP lease: " +str(err))
   return False
    
- def getIPsec(self,gwname):
+ def get_ipsec(self,gwname):
   try:
    # Could actually just look at "show security ike security-associations" - len of that result
    # is the number of ikes (not tunnels though) with GW etc
@@ -198,16 +198,16 @@ class SRX(JRouter):
    address = ike.xpath(".//gateway[name='" + gwname + "']/address")
    return address[0].text, self.tunnels
   except Exception as err:
-   sysLogMsg("System Error - getting IPsec data: " + str(err))
+   sys_log_msg("System Error - getting IPsec data: " + str(err))
    return None, self.tunnels
 
- def setIPsec(self,gwname,oldip,newip):
+ def set_ipsec(self,gwname,oldip,newip):
   try:
    self._config.load("set security ike gateway " + gwname + " address " + newip, format = 'set')
    self._config.load("delete security ike gateway " + gwname + " address " + oldip, format = 'set')
    self._config.commit("commit by setIPsec ["+gwname+"]")
   except Exception as err:
-   sysLogMsg("System Error - modifying IPsec: " + str(err))
+   sys_log_msg("System Error - modifying IPsec: " + str(err))
    return False
   return True
 
@@ -228,7 +228,7 @@ class EX(JRouter):
  # should prep for ELS only and send "instance = 'default-instance'" - then id could be retrieved too
  # since grouping is different
  #
- def getSwitchTable(self):
+ def get_switch_table(self):
   fdblist = []
   try:
    swdata = self._router.rpc.get_ethernet_switching_table_information()
@@ -246,23 +246,22 @@ class EX(JRouter):
      mac  = entry.find("mac-address").text
      interface = entry.find(".//mac-interfaces").text
      if not mac == "*" and not interface == "Router":
-      fdblist.append([ vlan, mac, interface, self.getInterfaceName(interface) ]) 
+      fdblist.append([ vlan, mac, interface, self.get_interface_name(interface) ]) 
   except Exception as err:
-   sysLogMsg("System Error - fetching FDB: " + str(err))
+   sys_log_msg("System Error - fetching FDB: " + str(err))
   return fdblist
 
  #
  #
  #
- def widgetSwitchTable(self):
+ def widget_switch_table(self):
   try:
-   fdb = self.getSwitchTable()
+   fdb = self.get_switch_table()
    print "<DIV CLASS='z-table' style='overflow-y:auto; max-height:600px'>"
    print "<TABLE><TH>VLAN</TH><TH>MAC</TH><TH>Interface</TH><TH>Interface Description</TH>"
    for entry in fdb:
     print "<TR><TD>" + "&nbsp;</TD><TD>".join(entry) + "</TD></TR>\n"
    print "<TR><TD COLSPAN=2></TD></TR></TABLE></DIV>"
   except Exception as err:
-   sysLogMsg("widgetSwitchTable: Error [{}]".format(str(err)))
+   sys_log_msg("widgetSwitchTable: Error [{}]".format(str(err)))
    print "<B>Error - issue loading widget: {}</B>".format(str(err))
-

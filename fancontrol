@@ -11,7 +11,7 @@ Application to control ASRock IPMI (AMI?)
 
 """
 __author__ = "Zacharias El Banna"
-__version__ = "2.0"
+__version__ = "10.0"
 __status__ = "Production"
 
 from sys import argv, exit, path as syspath
@@ -27,16 +27,16 @@ from IPMI import IPMI
 ipmi = IPMI(argv[1])
 
 if (len(argv) == 3) and (argv[2] == "-r"):
- ipmi.printInfo("RPM")
+ ipmi.print_info("RPM")
 elif (len(argv) == 3) and (argv[2] == "-rv"):
- ipmi.printInfo("RPM|degrees")
+ ipmi.print_info("RPM|degrees")
 elif len(argv) < 5 or len(argv) > 6 or (argv[2] != "-w"):
  print argv[0] + " <host_ip> -w(ritfans) <rear fan(s) %> <front fan(s) %> [-v(erbose)]"
  print argv[0] + " <host_ip> -r(eadfans)"
  print argv[0] + " <host_ip> -r(eadfans)v(erbose)"
  exit(0)
 elif (len(argv) == 6) and (argv[2] == "-w") and (argv[5] == "-v"):
- ipmi.printInfo("RPM")
- ipmi.setFans(argv[3],argv[4])
+ ipmi.print_info("RPM")
+ ipmi.set_fans(argv[3],argv[4])
 else:
- ipmi.setFans(argv[3],argv[4])
+ ipmi.set_fans(argv[3],argv[4])

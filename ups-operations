@@ -11,7 +11,7 @@ Application to shutdown and then power on VMs shutdown inititated by UPS system
 
 """
 __author__ = "Zacharias El Banna"
-__version__ = "2.0"
+__version__ = "10.0"
 __status__ = "Production"
 
 from sys import argv, exit, stdout, path as syspath
@@ -27,7 +27,7 @@ host = argv[2]
 esxi = ESXi(host)
 
 if op == 'powerup':
- esxi.startupVMs()
+ esxi.startup_vms()
 elif op == 'shutdown':
- esxi.shutdownVMs()
+ esxi.shutdown_vms()
 

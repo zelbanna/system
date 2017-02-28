@@ -3,34 +3,11 @@
 
 """Module docstring.
 
-Generic Functions, exports:
-
-- sysSetDebug
-- sysLogDebug
-- sysGetHost
-- sysIP2Int
-- sysInt2IP
-- sysIPs2Range
-- sysStr2Hex
-- pingOS
-- sysGetResults
-- sysSetLog
-- sysDebug (bool)
-- sysLogMsg
-
-- simpleArgParser
-
-- sysWritePidFile
-- sysReadPidFile
-- sysLockPid
-- sysReleasePid
-- sysFileReplace
-
-- sysSortCSS
+Generic Library
 
 """
 __author__ = "Zacharias El Banna"                     
-__version__ = "5.0"
+__version__ = "10.0"
 __status__ = "Production"
 
 from os import remove, path as ospath, system
@@ -40,44 +17,41 @@ from socket import inet_ntoa, inet_aton, gethostbyname
 
 ################################# Generics ####################################
 
-sysDebug = False
+_sys_debug = False
 
-def sysSetDebug(astate):
- global sysDebug
- sysDebug = astate
+def sys_set_debug(astate):
+ global _sys_debug
+ _sys_debug = astate
 
-def sysLogDebug(amsg):
- if sysDebug: print "Log: " + amsg
-
-def sysGetHost(ahost):
+def sys_get_host(ahost):
  try:
   return gethostbyname(ahost)
  except:
   return None
 
-def sysIP2Int(addr):
+def sys_ip2int(addr):
  return unpack("!I", inet_aton(addr))[0]
  
-def sysInt2IP(addr):
+def sys_int2ip(addr):
  return inet_ntoa(pack("!I", addr))
 
-def sysIPs2Range(addr1,addr2):
+def sys_ips2range(addr1,addr2):
  return map(lambda addr: inet_ntoa(pack("!I", addr)), range(unpack("!I", inet_aton(addr1))[0], unpack("!I", inet_aton(addr2))[0] + 1))
 
-def sysStr2Hex(arg):
+def sys_str2hex(arg):
  try:
   return '0x{0:02x}'.format(int(arg))
  except:
   return '0x00'    
 
-def pingOS(ip):
+def ping_os(ip):
  return system("ping -c 1 -w 1 " + ip + " > /dev/null 2>&1") == 0
 
-def sysGetResults(test):
+def sys_get_results(test):
  return "success" if test else "failure"
 
-def sysLogMsg(amsg, alog='/var/log/system/system.log'):
- sysLogDebug(amsg)
+def sys_log_msg(amsg, alog='/var/log/system/system.log'):
+ if _sys_debug: print "Log: " + amsg
  with open(alog, 'a') as f:
   f.write(unicode("{} : {}\n".format(strftime('%Y-%m-%d %H:%M:%S', localtime()), amsg)))
 
@@ -85,7 +59,7 @@ def sysLogMsg(amsg, alog='/var/log/system/system.log'):
 # Lightweight argument parser, returns a dictionary with found arguments - { arg : value }
 # Requires - or -- before any argument
 #
-def simpleArgParser(args):
+def simple_arg_parser(args):
  # args should really be the argv
  argdict = {}
  currkey = None
@@ -104,12 +78,12 @@ def simpleArgParser(args):
  return argdict
 
 
-def sysWritePidFile(pidfname):
+def sys_write_pidfile(pidfname):
  pidfile = open(pidfname,'w')
  pidfile.write(str(getpid()))
  pidfile.close()
 
-def sysReadPidFile(pidfname):
+def sys_read_pidfile(pidfname):
  pid = -1
  if ospath.isfile(pidfname):
   pidfile = open(pidfname)
@@ -117,16 +91,16 @@ def sysReadPidFile(pidfname):
   pidfile.close()
  return int(pid)
 
-def sysReleasePidFile(pidfname):
+def sys_release_pidfile(pidfname):
  if ospath.isfile(pidfname):
   remove(pidfname)
 
-def sysLockPidFile(pidfname, sleeptime):
+def sys_lock_pidfile(pidfname, sleeptime):
  while ospath.isfile(pidfname):
   sleep(sleeptime)
  sysWritePidFile(pidfname) 
 
-def sysFileReplace(afile,old,new):
+def sys_file_replace(afile,old,new):
  if afile == "" or new == "" or old == "":
   return False
 
@@ -139,9 +113,3 @@ def sysFileReplace(afile,old,new):
  with open(afile, 'w') as f:
   f.write(filedata)
  return True
-            
-def sysSortCss(afile):
- with open(afile,'r') as css:
-  filedata = css.read()
-  for line in filedata.split('\n'):
-   print line 

@@ -41,7 +41,7 @@ MAILTO=root
 try:
  fwip = gethostbyname(argv[2])
 except Exception as err:
- sysLogMsg("System Error - local name server resolution not working, check DNS status")
+ sys_log_msg("System Error - local name server resolution not working, check DNS status")
  exit(1)
 
 
@@ -57,50 +57,49 @@ upif = argv[4]
 
 ########################### Run ################################
 from JRouter import SRX
-from DNS import getLoopiaIP, setLoopiaIP, getLoopiaSuffix, syncPDNS
-from GenLib import sysGetResults, sysLogMsg, sysSetDebug, sysLogDebug
+from DNS import get_loopia_ip, set_loopia_ip, get_loopia_suffix, sync_pdns
+from GenLib import sys_get_results, sys_log_msg, sys_set_debug
 
 if argv[1] == "debug":
- sysSetDebug(True)
+ sys_set_debug(True)
 
 try:
  srx = SRX(fwip)
  if srx.connect():
-  sysLogDebug("Connected to: " + fwip)
-  srx.loadDHCP()
+  srx.load_dhcp()
 
   # First check DNS recursion
   if len(srx.dnslist) > 0:
-   if srx.pingRPC(srx.dnslist[0]):
-    syncPDNS(srx.dnslist)
-    if srx.dhcpip != gethostbyname(site + getLoopiaSuffix()):
-     if srx.dhcpip != getLoopiaIP(site):
-      setLoopiaIP(site,srx.dhcpip)
+   if srx.ping_rpc(srx.dnslist[0]):
+    sync_pdns(srx.dnslist)
+    if srx.dhcpip != gethostbyname(site + get_loopia_suffix()):
+     if srx.dhcpip != get_loopia_ip(site):
+      set_loopia_ip(site,srx.dhcpip)
 
     # Check IPsec, can we reach the hub?  
     if not gw == "":
-     address, tunnels = srx.getIPsec(gwname)
+     address, tunnels = srx.get_ipsec(gwname)
 
      # Assume if one tunnel is up it's the hub 
      if tunnels == 0:
       # no tunnels active
-      gwip = gethostbyname(gw + getLoopiaSuffix())
+      gwip = gethostbyname(gw + get_loopia_suffix())
       # check configured gw ip, still ok - try to ping, otherwise reconf 
       if gwip == address:
-       sysLogMsg("Reachability Check - Ping IPsec gateway (" + gw + " | " + gwip + "): " + sysGetResults(srx.pingRPC(gwip)))
+       sys_log_msg("Reachability Check - Ping IPsec gateway (" + gw + " | " + gwip + "): " + sys_get_results(srx.ping_rpc(gwip)))
       else: 
-       sysLogMsg("Reachability Check - Reconfigure IPsec gateway: " + sysGetResults(srx.setIPsec(gwname,address,gwip)))
+       sys_log_msg("Reachability Check - Reconfigure IPsec gateway: " + sys_get_results(srx.set_ipsec(gwname,address,gwip)))
   
    else:
-    sysLogMsg("Reachability Error - Can't reach external name server (DNS): " + srx.dnslist[0])
+    sys_log_msg("Reachability Error - Can't reach external name server (DNS): " + srx.dnslist[0])
     exit(1) 
     
   else:
-   sysLogMsg("Reachability Error - Can't find DNS in DHCP lease, renewing")
-   srx.renewDHCP(upif)
+   sys_log_msg("Reachability Error - Can't find DNS in DHCP lease, renewing")
+   srx.renew_dhcp(upif)
   srx.close()
  else:
-  sysLogMsg("System Error - Cannot reach firewall, check Power and Cables are ok")
+  sys_log_msg("System Error - Cannot reach firewall, check Power and Cables are ok")
    
 except Exception as checks:
- sysLogMsg("Watchdog Error: " + str(checks))
+ sys_log_msg("Watchdog Error: " + str(checks))
