@@ -3,6 +3,8 @@
 
 """Module docstring.
 
+WLC Base Class
+
 Junos Router Base Class
 - JRouter
 - SRX functions
@@ -10,10 +12,10 @@ Junos Router Base Class
 
 """
 __author__ = "Zacharias El Banna"
-__version__ = "4.3"
+__version__ = "5.0"
 __status__ = "Production"
 
-from PasswordContainer import netconf_username, netconf_password, GenDevice
+from PasswordContainer import netconf_username, netconf_password
 from GenLib import sysLogMsg
 from netsnmp import VarList, Varbind, Session
 from lxml import etree
@@ -23,7 +25,7 @@ from lxml import etree
 # Simpler WLC class
 #
 
-class WLC(GenDevice):
+class WLC(object):
 
  def __init__(self,ahostname, acommunity='public'):
   self._hostname = ahostname
@@ -65,7 +67,7 @@ class WLC(GenDevice):
 # Connect to Router, a couple of RPCs will be issued from there
 #
 
-class JRouter(GenDevice):
+class JRouter(object):
 
  def __init__(self,ahostname):
   from jnpr.junos import Device

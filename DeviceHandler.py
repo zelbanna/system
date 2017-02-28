@@ -18,6 +18,9 @@ from threading import Lock, Thread, active_count, enumerate
 
 class Devices(object):
 
+ _position = { 'domain':0, 'fqdn':1, 'dns':2, 'snmp':3, 'model':4, 'type':5, 'is_graphed':6, 'rack':7, 'unit':8, 'consoleport':9 }
+ _devtypes = [ 'ex', 'qfx', 'srx', 'mx', 'wlc', 'esxi' ] 
+ 
  def __init__(self, aconfigfile = '/var/www/device.hosts.conf'):
   self._configfile = aconfigfile
   self._configitems = {}
@@ -28,9 +31,11 @@ class Devices(object):
    configitems = "{:<16} ".format(key) + " ".join(value) + "\n" + configitems
   return "Device: {}\n{}".format(self._configfile, configitems.strip())
 
- def index(self,target):
-  position = { 'domain':0, 'fqdn':1, 'dns':2, 'snmp':3, 'model':4, 'type':5, 'is_graphed':6, 'rack':7, 'unit':8, 'consoleport':9 }
-  return position[target]
+ def getIndex(self,target):
+  return self._position[target]
+
+ def isManagedType(self,atype):
+  return atype in self._devtypes
 
  def loadConf(self):
   try:
@@ -66,7 +71,7 @@ class Devices(object):
 
  def getTargetEntries(self, target, arg):
   found = []
-  indx = self.index(target)
+  indx = self.getIndex(target)
   for key, value in self._configitems.iteritems():
    if value[indx] == arg:
     found.append(key)

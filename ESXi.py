@@ -11,7 +11,7 @@ __version__ = "6.0"
 __status__ = "Production"
 
 from PasswordContainer import esxi_username, esxi_password
-from GenLib import sysLogMsg, sysLockPidFile, sysReleasePidFile, sysGetHost, GenDevice
+from GenLib import sysLogMsg, sysLockPidFile, sysReleasePidFile, sysGetHost
 from netsnmp import VarList, Varbind, Session
 from select import select
 from os import remove, path
@@ -21,7 +21,7 @@ from os import remove, path
 # ESXi command interaction
 #
 
-class ESXi(GenDevice):
+class ESXi(object):
  
  #
  # Each ESXi Server has an IP and probably KVM means for out of band access.
