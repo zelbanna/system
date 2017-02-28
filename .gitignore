@@ -3,3 +3,5 @@
 *.pyc
 PasswordContainer.*
 plugins
+
+guacd*
