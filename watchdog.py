@@ -58,7 +58,7 @@ upif = argv[4]
 ########################### Run ################################
 from JRouter import SRX
 from DNS import getLoopiaIP, setLoopiaIP, getLoopiaSuffix, syncPDNS
-from SystemFunctions import sysGetResults, sysLogMsg, sysSetDebug, sysLogDebug
+from GenLib import sysGetResults, sysLogMsg, sysSetDebug, sysLogDebug
 
 if argv[1] == "debug":
  sysSetDebug(True)

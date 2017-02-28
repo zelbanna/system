@@ -13,5 +13,5 @@ A couple of major libs provide classes for the web frontend and general manageme
 
 - DeviceHandler: interface all generic device informartion operations - today is simple textfile based but should be SQL 
 - GraphHandler: wrapper against graphing system
-- SystemFunctions: provide generic funcations for all the other libs (IP2Int, pidfile mgmt, logging etc)
+- GenLib: provide generic funcations for all the other libs (IP2Int, pidfile mgmt, logging etc)
 

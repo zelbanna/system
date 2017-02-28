@@ -15,7 +15,7 @@ __version__ = "3.2"
 __status__ = "Production"
 
 from PasswordContainer import ipmi_username, ipmi_password
-from SystemFunctions import sysGetResults, sysStr2Hex
+from GenLib import sysGetResults, sysStr2Hex
 from subprocess import check_output, check_call
 
 

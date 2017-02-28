@@ -13,7 +13,7 @@ __author__ = "Zacharias El Banna"
 __version__ = "5.0"
 __status__ = "Production"
 
-from SystemFunctions import sysLogDebug, sysLogMsg, pingOS
+from GenLib import sysLogDebug, sysLogMsg, pingOS
 from threading import Lock, Thread, active_count
 
 ####################################### Grapher Class ##########################################

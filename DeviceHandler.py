@@ -10,10 +10,10 @@ Exports:
 
 """  
 __author__  = "Zacharias El Banna"
-__version__ = "5.0"
+__version__ = "6.0"
 __status__  = "Production"
 
-from SystemFunctions import pingOS, sysIPs2Range, sysIP2Int, sysLogDebug, sysLogMsg
+from GenLib import pingOS, sysIPs2Range, sysIP2Int, sysLogDebug, sysLogMsg
 from threading import Lock, Thread, active_count, enumerate
 
 class Devices(object):
@@ -42,9 +42,22 @@ class Devices(object):
      self._configitems[entry[0]] = entry[1:]
   except Exception as err:
    sysLogMsg("DeviceHandler loadConf: error reading config file - [{}]".format(str(err)))
+
+ def quickEntry(self, akey):
+  entry = None
+  try:
+   with open(self._configfile) as conffile:
+    for line in conffile:
+     entry = " ".join(line.split()).split()
+     if entry[0] == akey:
+      break
+   # Close properly and then..
+  except Exception as err:
+   sysLogMsg("DeviceHandler loadEntry: error reading config file - [{}]".format(str(err)))
+  return entry[1:] 
  
- def getEntry(self, aentry):
-  return self._configitems.get(aentry,None)
+ def getEntry(self, akey):
+  return self._configitems.get(akey,None)
 
  def getEntries(self):
   keys = self._configitems.keys()

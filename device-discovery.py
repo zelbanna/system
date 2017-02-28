@@ -15,7 +15,7 @@ __status__ = "Production"
 from sys import argv, exit, path as syspath
 syspath.append('/usr/local/sbin')
 from DeviceHandler import Devices
-from SystemFunctions import simpleArgParser
+from GenLib import simpleArgParser
 
 args = simpleArgParser(argv)
 if len(args) < 2:

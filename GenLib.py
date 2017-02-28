@@ -5,6 +5,8 @@
 
 Generic Functions, exports:
 
+- GenDevice class
+
 - sysSetDebug
 - sysLogDebug
 - sysGetHost
@@ -37,6 +39,22 @@ from os import remove, path as ospath, system
 from time import sleep, localtime, strftime
 from struct import pack, unpack
 from socket import inet_ntoa, inet_aton, gethostbyname
+
+########################### Generic Device Class ##############################
+
+class GenDevice(object):
+
+ def __init__(self):
+  pass
+
+ def __str__(self):
+  return "GenericDevice"
+  
+ def getOperations(self):
+  return []
+  
+ def doOperation(self, aop):
+  return False
 
 ################################# Generics ####################################
 

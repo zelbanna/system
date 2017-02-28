@@ -13,8 +13,8 @@ __author__ = "Zacharias El Banna"
 __version__ = "4.3"
 __status__ = "Production"
 
-from PasswordContainer import netconf_username, netconf_password
-from SystemFunctions import sysLogMsg
+from PasswordContainer import netconf_username, netconf_password, GenDevice
+from GenLib import sysLogMsg
 from netsnmp import VarList, Varbind, Session
 from lxml import etree
 
@@ -23,7 +23,7 @@ from lxml import etree
 # Simpler WLC class
 #
 
-class WLC(object):
+class WLC(GenDevice):
 
  def __init__(self,ahostname, acommunity='public'):
   self._hostname = ahostname
@@ -65,7 +65,7 @@ class WLC(object):
 # Connect to Router, a couple of RPCs will be issued from there
 #
 
-class JRouter(object):
+class JRouter(GenDevice):
 
  def __init__(self,ahostname):
   from jnpr.junos import Device
@@ -130,7 +130,7 @@ class JRouter(object):
    if status[0].split('-')[0] in [ 'ge', 'fe', 'xe', 'et','st0' ] and status[1] == "up":
     result.append(status)
   return result
- 
+
  #
  # SNMP is much smoother than Netconf for some things :-)
  #
