@@ -18,15 +18,16 @@ from threading import Lock, Thread, active_count, enumerate
 
 class Devices(object):
 
- _position = { 'domain':0, 'fqdn':1, 'dns':2, 'snmp':3, 'model':4, 'type':5, 'is_graphed':6, 'rack':7, 'unit':8, 'consoleport':9 }
+ # console port assumes cascaded devices..
+ _position = { 'domain':0, 'fqdn':1, 'dns':2, 'snmp':3, 'model':4, 'type':5, 'graphed':6, 'rack':7, 'unit':8, 'consoleport':9 }
 
  # [0] == 'operated' means using a separate file for operations
  _typefun  = {
-  'ex':  [ 'pingRPC', 'getFacts', 'getUpInterfaces', 'widgetSwitchTable' ],
-  'qfx': [ 'pingRPC', 'getFacts', 'getUpInterfaces' ],
-  'srx': [ 'pingRPC', 'getFacts', 'getUpInterfaces' ],
-  'mx':  [ 'pingRPC', 'getFacts', 'getUpInterfaces' ],
-  'wlc': [ 'widgetSwitchTable' ],
+  'ex':  [ 'widget_up_interfaces', 'widget_switch_table' ],
+  'qfx': [ 'widget_up_interfaces' ],
+  'srx': [ 'widget_up_interfaces' ],
+  'mx':  [ 'widget_up_interfaces' ],
+  'wlc': [ 'widget_switch_table' ],
   'esxi':[ 'operated' ]
   }
  

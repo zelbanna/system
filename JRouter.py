@@ -48,8 +48,8 @@ class WLC(object):
    return
         
   ipdict= dict(map(lambda res: (res.tag[33:], res.val) ,cipobjs))
-  print "<DIV CLASS='z-op-panel' style='overflow-y:auto; max-height:600px'>"
-  print "<TABLE CLASS='z-everyother'><TH>Name</TH><TH>IP</TH><TH>MAC</TH><TH>SSid</TH>"
+  print "<DIV CLASS='z-table' style='overflow-y:auto; max-height:600px'>"
+  print "<TABLE><TH>Name</TH><TH>IP</TH><TH>MAC</TH><TH>SSid</TH>"
   for res in cssidobjs:
    macbase=res.tag[34:]
    mac = (macbase+"."+res.iid).split(".")
@@ -59,8 +59,7 @@ class WLC(object):
    except:
     clientname = "unknown"
    print "<TR><TD>" + clientname + "&nbsp;</TD><TD>" + ipdict.get(macbase) + "&nbsp;</TD><TD>" + mac + "&nbsp;</TD><TD>" + res.val + "</TD></TR>"
-  print "</TABLE>"
-  print "</DIV>"
+  print "</TABLE></DIV>"
 
 ################################ JUNOS Object #####################################
 #
@@ -133,6 +132,16 @@ class JRouter(object):
     result.append(status)
   return result
 
+ def widget_up_interfaces(self):
+  self.connect()
+  ifs = self.get_up_interfaces()
+  self.close()
+  print "<DIV CLASS='z-table' style='overflow-y:auto; max-height:600px'>"
+  print "<TABLE><TH>X</TH><TH>Y</TH><TH>Z</TH><TH>W</TH>"
+  for entry in ifs:
+   print "<TR><TD>" + "&nbsp;</TD><TD>".join(entry) + "</TD></TR>\n"
+  print "</TABLE></DIV>"                
+  
  #
  # SNMP is much smoother than Netconf for some things :-)
  #
@@ -238,7 +247,7 @@ class EX(JRouter):
      vlan = entry.find("l2ng-l2-mac-vlan-name").text
      mac  = entry.find("l2ng-l2-mac-address").text     
      interface = entry.find("l2ng-l2-mac-logical-interface").text
-     fdblist.append([ vlan, mac, interface, self.getInterfaceName(interface) ])
+     fdblist.append([ vlan, mac, interface, self.get_interface_name(interface) ])
    elif swdata.tag == "ethernet-switching-table-information":
     self._style = "Legacy"
     for entry in swdata[0].iter("mac-table-entry"):
@@ -252,16 +261,19 @@ class EX(JRouter):
   return fdblist
 
  #
- #
+ # Widgets should be self contained - connect, load names etc
  #
  def widget_switch_table(self):
   try:
+   self.connect()
+   self.load_interfaces_name()
    fdb = self.get_switch_table()
+   self.close()
    print "<DIV CLASS='z-table' style='overflow-y:auto; max-height:600px'>"
    print "<TABLE><TH>VLAN</TH><TH>MAC</TH><TH>Interface</TH><TH>Interface Description</TH>"
    for entry in fdb:
     print "<TR><TD>" + "&nbsp;</TD><TD>".join(entry) + "</TD></TR>\n"
-   print "<TR><TD COLSPAN=2></TD></TR></TABLE></DIV>"
+   print "</TABLE></DIV>"
   except Exception as err:
-   sys_log_msg("widgetSwitchTable: Error [{}]".format(str(err)))
+   sys_log_msg("EX widget switch table: Error [{}]".format(str(err)))
    print "<B>Error - issue loading widget: {}</B>".format(str(err))
