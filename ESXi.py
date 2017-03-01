@@ -30,15 +30,13 @@ class ESXi(object):
  # Here I assume kvm IP is reachable through DNS by adding '-' and KVM type to FQDN:
  # <hostname>-[kvm|ipmi|amt].<domain>
  #
- def __init__(self,aesxihost, akvm=None):
+ def __init__(self,aesxihost):
   fqdn = aesxihost.split('.')
   self.hostname  = fqdn[0]
   if len(fqdn) == 2:
    self.domain = fqdn[1]
   else:
    self.domain = None
- 
-  self._kvmtype = akvm
   self._kvmip   = None
   self._sshclient = None
   self.community = "public"
@@ -65,17 +63,21 @@ class ESXi(object):
    self.log("threading: Illegal operation passed [{}]".format(aoperation))
 
  # Different FQDN for KVM types
- def get_kvm_type(self, adefaulttype = None):
-  if self._kvmip and self._kvmtype:
-   return self._kvmtype, self._kvmip
+ def get_kvm_ip(self, adefaulttype = 'ipmi'):
+  if self._kvmip:
+   return self._kvmip
   elif self.domain:
    for type in ['amt','ipmi','kvm']:
-    ip = sys_get_host("{}-{}.{}".format(self.hostname,type,self.domain))
+    ip = sys_get_host("{0}-{1}.{2}".format(self.hostname,type,self.domain))
+    print ip,type
     if ip:
-     self._kvmip = ip
-     self._kvmtype = type
-     return type, ip
-  return adefaulttype, "{}-{}.{}".format(self.hostname,adefaulttype,self.domain)
+     self._kvmip = ip + ":16992" if type == 'amt' else ip
+     break
+   else:
+    # No DNS found
+    ip = "{}-{}.{}".format(self.hostname,adefaulttype,self.domain)
+    self._kvmip = ip + ":16992" if adefaulttype == "amt" else ip
+  return self._kvmip
 
  def create_lock(self,atime):
   sys_lock_pidfile("/tmp/esxi." + self.hostname + ".vm.pid",atime)
