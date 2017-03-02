@@ -19,18 +19,8 @@ from threading import Lock, Thread, active_count, enumerate
 class Devices(object):
 
  # console port assumes cascaded devices..
- _position = { 'domain':0, 'fqdn':1, 'dns':2, 'snmp':3, 'model':4, 'type':5, 'graphed':6, 'rack':7, 'unit':8, 'consoleport':9 }
+ _position = { 'domain':0, 'fqdn':1, 'dns':2, 'snmp':3, 'model':4, 'type':5, 'graphed':6, 'rack':7, 'unit':8, 'consoleport':9, 'powerslots':10 }
 
- # [0] == 'operated' means using a separate file for operations
- _typefun  = {
-  'ex':  [ 'widget_up_interfaces', 'widget_switch_table' ],
-  'qfx': [ 'widget_up_interfaces' ],
-  'srx': [ 'widget_up_interfaces' ],
-  'mx':  [ 'widget_up_interfaces' ],
-  'wlc': [ 'widget_switch_table' ],
-  'esxi':[ 'operated' ]
-  }
- 
  def __init__(self, aconfigfile = '/var/www/device.hosts.conf'):
   self._configfile = aconfigfile
   self._configitems = {}
@@ -43,12 +33,6 @@ class Devices(object):
 
  def get_index(self,target):
   return self._position[target]
-
- def is_managed_type(self,atype):
-  return atype in self._typefun.keys()
-
- def get_type_functions(self, atype):
-  return self._typefun.get(atype,None)
 
  def load_conf(self):
   try:
@@ -161,6 +145,8 @@ class Devices(object):
  #
  # Device must answer to ping(!) for system to continue
  #
+ # Add proper community handling..
+ #
  def _detect(self, aIP, aDomain):
   from netsnmp import VarList, Varbind, Session
   from socket import gethostbyaddr
@@ -213,7 +199,7 @@ class Devices(object):
     model = "other"
     type  = " ".join(infolist[0:4])
 
-  self._configitems[aIP] = [ aDomain, fqdn, dns, snmp, model, type, 'no', 'unknown', 'unknown', 'unknown' ]
+  self._configitems[aIP] = [ aDomain, fqdn, dns, snmp, model, type, 'no', 'unknown', 'unknown', 'unknown','unknown:unknown' ]
   return True
 
 #############################################################################

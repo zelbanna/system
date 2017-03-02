@@ -132,12 +132,15 @@ class JRouter(object):
     result.append(status)
   return result
 
+ def get_switch_table(self):
+  return []
+
  def widget_up_interfaces(self):
   self.connect()
   ifs = self.get_up_interfaces()
   self.close()
   print "<DIV CLASS='z-table' style='overflow-y:auto; max-height:600px'>"
-  print "<TABLE><TH>X</TH><TH>Y</TH><TH>Z</TH><TH>W</TH>"
+  print "<TABLE><TH>Interface</TH><TH>State</TH><TH>SNMP index</TH><TH>Description</TH>"
   for entry in ifs:
    print "<TR><TD>" + "&nbsp;</TD><TD>".join(entry) + "</TD></TR>\n"
   print "</TABLE></DIV>"                
@@ -270,7 +273,7 @@ class EX(JRouter):
    fdb = self.get_switch_table()
    self.close()
    print "<DIV CLASS='z-table' style='overflow-y:auto; max-height:600px'>"
-   print "<TABLE><TH>VLAN</TH><TH>MAC</TH><TH>Interface</TH><TH>Interface Description</TH>"
+   print "<TABLE><TH>VLAN</TH><TH>MAC</TH><TH>Interface</TH><TH>Description</TH>"
    for entry in fdb:
     print "<TR><TD>" + "&nbsp;</TD><TD>".join(entry) + "</TD></TR>\n"
    print "</TABLE></DIV>"
