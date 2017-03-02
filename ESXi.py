@@ -11,7 +11,7 @@ __version__ = "6.0"
 __status__ = "Production"
 
 from PasswordContainer import esxi_username, esxi_password
-from GenLib import sys_log_msg, sys_lock_pidfile, sys_release_pidfile, sys_get_host
+from GenLib import sys_log_msg, sys_lock_pidfile, sys_release_pidfile, sys_get_host, sys_is_ip
 from netsnmp import VarList, Varbind, Session
 from select import select
 from os import remove, path
@@ -31,13 +31,18 @@ class ESXi(object):
  # <hostname>-[kvm|ipmi|amt].<domain>
  #
  def __init__(self,aesxihost):
-  fqdn = aesxihost.split('.')
-  self.hostname  = fqdn[0]
-  if len(fqdn) == 2:
-   self.domain = fqdn[1]
-  else:
+  if sys_is_ip(aesxihost):
+   self.hostname = aesxihost
    self.domain = None
-  self._kvmip   = None
+   self._kvmip = aesxihost
+  else:
+   fqdn = aesxihost.split('.')
+   self.hostname  = fqdn[0]
+   if len(fqdn) == 2:
+    self.domain = fqdn[1]
+   else:
+    self.domain = None
+   self._kvmip   = None
   self._sshclient = None
   self.community = "public"
   self.backuplist = []
@@ -69,7 +74,6 @@ class ESXi(object):
   elif self.domain:
    for type in ['amt','ipmi','kvm']:
     ip = sys_get_host("{0}-{1}.{2}".format(self.hostname,type,self.domain))
-    print ip,type
     if ip:
      self._kvmip = ip + ":16992" if type == 'amt' else ip
      break

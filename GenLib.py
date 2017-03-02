@@ -29,6 +29,13 @@ def sys_get_host(ahost):
  except:
   return None
 
+def sys_is_ip(addr):
+ try:
+  inet_aton(addr)
+  return True
+ except:
+  return False
+
 def sys_ip2int(addr):
  return unpack("!I", inet_aton(addr))[0]
  
