@@ -7,13 +7,32 @@ Generic Library
 
 """
 __author__ = "Zacharias El Banna"                     
-__version__ = "10.0"
+__version__ = "1.0GA"
 __status__ = "Production"
 
 from os import remove, path as ospath, system
 from time import sleep, localtime, strftime
 from struct import pack, unpack
 from socket import inet_ntoa, inet_aton, gethostbyname
+
+################################# Generics ####################################
+
+class GenDevice(object):
+ 
+ def __init__(self, ahost, adomain, atype):
+  self._hostname = ahost
+  self._domain = adomain
+  self._type = atype
+  self._fqdn = ahost if not adomain else ahost + "." + adomain
+
+ def __str__(self):
+  return "Location: {} Type:{}".format(self._fqdn, self._type)
+ 
+ def ping_device(self):
+  return ping_os(self._fqdn)
+
+ def get_type(self):
+  return self._type
 
 ################################# Generics ####################################
 

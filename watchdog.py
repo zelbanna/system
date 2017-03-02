@@ -9,7 +9,7 @@ Watchdog for system settings
 
 """
 __author__ = "Zacharias El Banna"                     
-__version__ = "3.3"
+__version__ = "5.0"
 __status__ = "Production"
 
 from socket import gethostbyname
@@ -56,9 +56,9 @@ site = argv[3]
 upif = argv[4]
 
 ########################### Run ################################
-from JRouter import SRX
-from DNS import get_loopia_ip, set_loopia_ip, get_loopia_suffix, sync_pdns
 from GenLib import sys_get_results, sys_log_msg, sys_set_debug
+from DNS import get_loopia_ip, set_loopia_ip, get_loopia_suffix, sync_pdns
+from DevRouter import SRX
 
 if argv[1] == "debug":
  sys_set_debug(True)

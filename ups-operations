@@ -20,7 +20,7 @@ if not len(argv) == 3:
  exit(1)
 
 syspath.append('/usr/local/sbin')
-from ESXi import ESXi
+from DevESXi import ESXi
 
 op   = argv[1]
 host = argv[2]

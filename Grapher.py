@@ -127,7 +127,7 @@ class Grapher(object):
  def discover(self, ahandler = '127.0.0.1'):
   from os import chmod
   from time import time
-  from DeviceHandler import Devices
+  from DevHandler import Devices
   start_time = int(time())
   try:
    with open(self._graphplug, 'w') as f:
@@ -149,17 +149,20 @@ class Grapher(object):
  #
  # Device must answer to ping(!) for system to continue
  #
+ #
+ # DevHandler should have a method for getting a 'type' object
+ #
  def _detect(self, aip, aentry, ahandler = '127.0.0.1'):
   if not ping_os(aip):
    return False
-  from JRouter import JRouter
   activeinterfaces = []
   type = aentry[5]
   fqdn = aentry[1]
   try:
    if type in [ 'ex', 'srx', 'qfx', 'mx', 'wlc' ]:
+    from DevRouter import Junos
     if not type == 'wlc':
-     jdev = JRouter(aip)
+     jdev = Junos(aip)
      if jdev.connect():
       activeinterfaces = jdev.get_up_interfaces()
       jdev.close()
