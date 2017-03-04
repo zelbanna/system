@@ -14,8 +14,6 @@ __version__ = "1.0GA"
 __status__  = "Production"
 
 from GenLib import ping_os, sys_ips2range, sys_ip2int, sys_log_msg
-from threading import Lock, Thread, active_count, enumerate
-
 class Devices(object):
 
  # console port assumes cascaded devices..
@@ -104,6 +102,7 @@ class Devices(object):
  # clear existing entries or not?
  def discover(self, aStartIP, aStopIP, aDomain, aClear = False):
   from time import time
+  from threading import Thread, BoundedSemaphore
 
   start_time = int(time())
   sys_log_msg("Device discovery: " + aStartIP + " -> " + aStopIP + ", for domain '" + aDomain + "'")
@@ -112,6 +111,7 @@ class Devices(object):
    self.load_conf()
 
   try:
+   sema = BoundedSemaphore(10)
    for ip in sys_ips2range(aStartIP, aStopIP):
     if aClear:
      self._configitems.pop(ip,None)
@@ -119,28 +119,20 @@ class Devices(object):
      existing = self._configitems.get(ip,None)
      if existing:
       continue
- 
-    t = Thread(target = self._detect, args=[ip, aDomain])
+    sema.acquire()
+    t = Thread(target = self._detect, args=[ip, aDomain, sema])
     t.name = "Detect " + ip
     t.start()
-    # Slow down a little..
-    if active_count() > 10:
-     t.join()
+   
+   # Join all threads by acquiring all semaphore resources
+   for i in range(10):
+    sema.acquire()
+   #  
+   # Update conf
+   self.update_conf()  
   except Exception as err:
    sys_log_msg("Device discovery: Error [{}]".format(str(err)))
   sys_log_msg("Device discovery: Total time spent: {} seconds".format(int(time()) - start_time))
-  
-  # Join all threads
-  wait = True
-  while wait:
-   if active_count() > 1:
-    t = enumerate()
-    t[1].join()
-   else:
-    wait = False
-  #  
-  # Update conf
-  self.update_conf()
 
  ########################### Detect Devices ###########################
  #
@@ -148,12 +140,13 @@ class Devices(object):
  #
  # Add proper community handling..
  #
- def _detect(self, aIP, aDomain):
+ def _detect(self, aIP, aDomain, aSema):
   from netsnmp import VarList, Varbind, Session
   from socket import gethostbyaddr
   if not ping_os(aIP):
+   aSema.release()
    return False
-  
+
   try:
    # .1.3.6.1.2.1.1.1.0 : Device info
    # .1.3.6.1.2.1.1.5.0 : Device name
@@ -201,6 +194,7 @@ class Devices(object):
     type  = " ".join(infolist[0:4])
 
   self._configitems[aIP] = [ aDomain, fqdn, dns, snmp, model, type, 'no', 'unknown', 'unknown', 'unknown','unknown:unknown' ]
+  aSema.release()
   return True
 
 #############################################################################

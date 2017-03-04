@@ -14,7 +14,6 @@ __version__ = "5.0"
 __status__ = "Production"
 
 from GenLib import sys_log_msg, ping_os
-from threading import Lock, Thread, active_count
 
 ####################################### Grapher Class ##########################################
 #
@@ -26,7 +25,6 @@ class Grapher(object):
   self._configfile = aconf
   self._configitems = {}
   self._graphplug = agraphplug
-  self._graphlock = Lock()
  
  def __str__(self):
   return "ConfigFile:{} PluginFile:{} ConfigKeys:[{}]".format(self._configfile, self._graphplug, str(self._configitems.keys()))
@@ -114,6 +112,7 @@ class Grapher(object):
    sys_log_msg("Grapher updateEntry: Error [{}]".format(str(err)))
 
  def add_entry(self, akey, aupdate, ahandler = '127.0.0.1'):
+  sys_log_msg("Grapher: Adding entry: {} - {} - {}".format(akey, aupdate, ahandler))
   with open(self._configfile, 'a') as conffile:
    conffile.write("\n")
    conffile.write("[" + akey + "]\n")
@@ -127,9 +126,12 @@ class Grapher(object):
  def discover(self, ahandler = '127.0.0.1'):
   from os import chmod
   from time import time
+  from threading import Lock, Thread, BoundedSemaphore
   from DevHandler import Devices
   start_time = int(time())
   try:
+   flock = Lock()
+   sema  = BoundedSemaphore(10)
    with open(self._graphplug, 'w') as f:
     f.write("#!/bin/bash\n")
    chmod(self._graphplug, 0o777)
@@ -137,10 +139,13 @@ class Grapher(object):
    devs = Devices()
    devs.load_conf()
    for key in devs.get_entries():
-    t = Thread(target = self._detect, args=[key, devs.get_entry(key), ahandler])
+    sys_log_msg("ACC: {}".format(key))
+    sema.acquire()
+    sys_log_msg("RUN: {}".format(key))
+    t = Thread(target = self._detect, args=[key, devs.get_entry(key), ahandler, flock, sema])
     t.start()
-    if active_count() > 10:
-     t.join()
+   for i in range(10):
+    sema.acquire()       
   except Exception as err:
    sys_log_msg("graphDiscover: failure in processing Device entries: [{}]".format(str(err)))
   sys_log_msg("graphDiscover: Total time spent: {} seconds".format(int(time()) - start_time))
@@ -152,9 +157,12 @@ class Grapher(object):
  #
  # DevHandler should have a method for getting a 'type' object
  #
- def _detect(self, aip, aentry, ahandler = '127.0.0.1'):
+ def _detect(self, aip, aentry, ahandler, alock, asema):
   if not ping_os(aip):
+   sys_log_msg("REL: {}".format(aip))
+   asema.release()
    return False
+
   activeinterfaces = []
   type = aentry[5]
   fqdn = aentry[1]
@@ -168,27 +176,29 @@ class Grapher(object):
       jdev.close()
      else:
       sys_log_msg("Graph detect: impossible to connect to {}! [{} - {}]".format(fqdn,type,model))
-    self._graphlock.acquire()
+    alock.acquire()
     with open(self._graphplug, 'a') as graphfile:
-     if self.get_entry(fqdn) == None:
-      self.add_entry(fqdn, ahandler, "no")
+     if not self.get_entry(fqdn):
+      self.add_entry(fqdn, "no", ahandler)
      graphfile.write('ln -s /usr/local/sbin/plugins/snmp__{0} /etc/munin/plugins/snmp_{1}_{0}\n'.format(type,fqdn))
      graphfile.write('ln -s /usr/share/munin/plugins/snmp__uptime /etc/munin/plugins/snmp_' + fqdn + '_uptime\n')
      graphfile.write('ln -s /usr/share/munin/plugins/snmp__users  /etc/munin/plugins/snmp_' + fqdn + '_users\n')
      for ifd in activeinterfaces:
       graphfile.write('ln -s /usr/share/munin/plugins/snmp__if_    /etc/munin/plugins/snmp_' + fqdn + '_if_'+ ifd[2] +'\n')
-    self._graphlock.release()
+    alock.release()
    elif type == "esxi":
-    self._graphlock.acquire()
+    alock.acquire()
     with open(self._graphplug, 'a') as graphfile:
-     if not self.add_entry(fqdn):
-      agrapher.add_conf(fqdn, ahandler, "no")
+     if not self.get_entry(fqdn):
+      self.add_entry(fqdn, "no", ahandler)
      graphfile.write('ln -s /usr/share/graph/plugins/snmp__uptime /etc/munin/plugins/snmp_' + fqdn + '_uptime\n')              
      graphfile.write('ln -s /usr/local/sbin/plugins/snmp__esxi    /etc/munin/plugins/snmp_' + fqdn + '_esxi\n')
-    self._graphlock.release()
+    alock.release()
   except Exception as err:
    sys_log_msg("Graph detect - error: [{}]".format(str(err)))
-   return False
+  
+  sys_log_msg("REL: {}".format(aip))
+  asema.release()
   return True
 
 #############################################################################
