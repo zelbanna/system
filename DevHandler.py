@@ -20,8 +20,8 @@ class Devices(object):
  _position = { 'domain':0, 'fqdn':1, 'dns':2, 'snmp':3, 'model':4, 'type':5, 'graphed':6, 'rack':7, 'unit':8, 'consoleport':9, 'powerslots':10 }
 
  @staticmethod
- def get_index(self,target):
-  return self._position[target]
+ def get_index(target):
+  return _position[target]
 
  def __init__(self, aconfigfile = '/var/www/device.hosts.conf'):
   self._configfile = aconfigfile

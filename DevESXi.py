@@ -26,8 +26,8 @@ class ESXi(GenDevice):
  _vmstatemap  = { "1" : "powered on", "2" : "powered off", "3" : "suspended", "powered on" : "1", "powered off" : "2", "suspended" : "3" }
 
  @staticmethod
- def get_state_str(self, astate):
-  return self._vmstatemap[astate]
+ def get_state_str(astate):
+  return _vmstatemap[astate]
   
  #
  # Each ESXi Server has an IP and probably KVM means for out of band access.
