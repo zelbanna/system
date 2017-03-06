@@ -37,20 +37,16 @@ class Grapher(object):
   print "cgiurl_graph=/munin-cgi/munin-cgi-graph&plugin_name={0}&size_x=800&size_y=400&start_epoch={1}&stop_epoch={2}'>".format(asource,str(start),str(stop))
   print "<IMG width=399 height=224 ALT='munin graph:{0}' SRC='/munin-cgi/munin-cgi-graph/{0}-day.png' /></A>".format(asource)
 
- def widget_cols(self, asources, aclose = False):
+ def widget_cols(self, asources):
   lwidth = 3 if len(asources) < 3 else len(asources)
-  print "<DIV CLASS='z-graph' style='width:{}px; height:240px; float:left;'>".format(str(lwidth * 420))
+  print "<DIV CLASS='z-graph' style='padding:5px; width:{}px; height:240px; float:left;'>".format(str(lwidth * 410))
   for src in asources:
    self._print_graph_link(src)
-  if aclose: print "<A class='z-btn z-small-btn' onclick=this.parentElement.style.display='none' style='margin:8px; float:right'><B>X</B></A>"
   print "</DIV>"
 
- def widget_rows(self, asources, aclose = False):
+ def widget_rows(self, asources):
   lheight = 3 if len(asources) < 3 else len(asources)
-  print "<DIV CLASS='z-graph' style='width:420px; height:{}px; float:left;'>".format(str(lheight * 240))
-  if aclose: print "<A class='z-btn z-small-btn' onclick=this.parentElement.style.display='none' style='margin:8px; float:right;'><B>X</B></A>"
-  else:
-   print "<BR style='display:block; margin:8px;'>"
+  print "<DIV CLASS='z-graph' style='padding-top:10px; padding-left:5px; width:420px; height:{}px; float:left;'>".format(str(lheight * 230))
   for src in asources:
    self._print_graph_link(src)
   print "</DIV>"
