@@ -25,9 +25,9 @@ class ESXi(GenDevice):
 
  _vmstatemap  = { "1" : "powered on", "2" : "powered off", "3" : "suspended", "powered on" : "1", "powered off" : "2", "suspended" : "3" }
 
- @staticmethod
- def get_state_str(astate):
-  return _vmstatemap[astate]
+ @classmethod
+ def get_state_str(cls,astate):
+  return cls._vmstatemap[astate]
   
  #
  # Each ESXi Server has an IP and probably KVM means for out of band access.
@@ -169,7 +169,7 @@ class ESXi(GenDevice):
    session.walk(vmstateobjs)
    index = 0
    for result in vmnameobjs:
-    statetuple = [result.iid, result.val, self._vmstatemap[vmstateobjs[index].val]]
+    statetuple = [result.iid, result.val, ESXi.get_state_str(vmstateobjs[index].val)]
     statetuple.append(result.val in self.backuplist)
     statelist.append(statetuple)
     index = index + 1

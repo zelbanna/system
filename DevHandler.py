@@ -19,9 +19,9 @@ class Devices(object):
  # console port assumes cascaded devices..
  _position = { 'domain':0, 'fqdn':1, 'dns':2, 'snmp':3, 'model':4, 'type':5, 'graphed':6, 'rack':7, 'unit':8, 'consoleport':9, 'powerslots':10 }
 
- @staticmethod
- def get_index(target):
-  return _position[target]
+ @classmethod
+ def get_index(cls, target):
+  return cls._position[target]
 
  def __init__(self, aconfigfile = '/var/www/device.hosts.conf'):
   self._configfile = aconfigfile
@@ -67,7 +67,7 @@ class Devices(object):
 
  def get_target_entries(self, target, arg):
   found = []
-  indx = self._position[target]
+  indx = Devices.get_index(target)
   for key, value in self._configitems.iteritems():
    if value[indx] == arg:
     found.append(key)
