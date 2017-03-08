@@ -155,7 +155,7 @@ class Grapher(object):
  #
  def _detect(self, aip, aentry, ahandler, alock, asema):
   if not ping_os(aip):
-   sys_log_msg("REL: {}".format(aip))
+   sys_log_msg("Grapher.py: release {}".format(aip))
    asema.release()
    return False
 

@@ -34,6 +34,9 @@ class GenDevice(object):
  def get_type(self):
   return self._type
 
+ def get_ip(self):
+  return sys_get_host(self._fqdn)
+
 ################################# Generics ####################################
 
 _sys_debug = False
