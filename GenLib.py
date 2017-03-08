@@ -19,6 +19,9 @@ from socket import inet_ntoa, inet_aton, gethostbyname
 
 class GenDevice(object):
  
+ #
+ # Factory from ip :-)
+ #
  def __init__(self, ahost, adomain, atype):
   self._hostname = ahost
   self._domain = adomain
@@ -26,7 +29,7 @@ class GenDevice(object):
   self._fqdn = ahost if not adomain else ahost + "." + adomain
 
  def __str__(self):
-  return "Location: {} Type:{}".format(self._fqdn, self._type)
+  return "FQDN: {} IP: {} Hostname: {} Domain: {} Type:{}".format(self._fqdn, "", self._hostname, self._domain, self._type)
  
  def ping_device(self):
   return ping_os(self._fqdn)
