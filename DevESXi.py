@@ -226,7 +226,7 @@ class ESXi(GenDevice):
   self.release_lock()
   return True
 
- def shutdown_vms(self,aExceptlist):
+ def shutdown_vms(self, aExceptlist):
   from time import sleep
   # Power down everything and save to the statefile, APCupsd statemachine:
   #
@@ -292,7 +292,7 @@ class ESXi(GenDevice):
      elif vm[1].startswith("pulse"):
       self.ssh_send("vim-cmd vmsvc/power.off " + vm[0])
       self.log("shutdown_vms: powering off machine: {}!".format(vm[0]))
-     elif vm[1] not in aExceptlist":
+     elif vm[1] not in aExceptlist:
       # Correct? or pass?
       self.ssh_send("vim-cmd vmsvc/power.suspend " + vm[0])
       self.log("shutdown_vms: suspending machine: {}!".format(vm[0]))
