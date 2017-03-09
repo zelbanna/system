@@ -48,7 +48,7 @@ class WLC(GenDevice):
    return
         
   ipdict= dict(map(lambda res: (res.tag[33:], res.val) ,cipobjs))
-  print "<DIV CLASS='z-table' style='overflow-y:auto; max-height:600px'>"
+  print "<DIV CLASS='z-table' style='overflow-y:auto;'>"
   print "<TABLE><TH>Name</TH><TH>IP</TH><TH>MAC</TH><TH>SSid</TH>"
   for res in cssidobjs:
    macbase=res.tag[34:]
@@ -139,7 +139,7 @@ class Junos(GenDevice):
   self.connect()
   ifs = self.get_up_interfaces()
   self.close()
-  print "<DIV CLASS='z-table' style='overflow-y:auto; max-height:600px'>"
+  print "<DIV CLASS='z-table' style='overflow-y:auto;'>"
   print "<TABLE><TH>Interface</TH><TH>State</TH><TH>SNMP index</TH><TH>Description</TH>"
   for entry in ifs:
    print "<TR><TD>" + "&nbsp;</TD><TD>".join(entry) + "</TD></TR>\n"
