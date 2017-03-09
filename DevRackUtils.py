@@ -70,7 +70,7 @@ class Avocent(GenDevice):
 
  @classmethod
  def set_outlet_state(cls,state):
-  return cls._setstatemap(state,'1')
+  return cls._setstatemap.get(state,'1')
 
  def __init__(self, ahost, adomain):
   GenDevice.__init__(self,ahost,adomain,'avocent')
@@ -91,7 +91,6 @@ class Avocent(GenDevice):
   from netsnmp import VarList, Varbind, Session
   try:
    # node = "pdu.outlet"
-   print Avocent.get_outlet_state(state)
    session = Session(Version = 2, DestHost = self._fqdn, Community = PC.snmp_write_community, UseNumeric = 1, Timeout = 100000, Retries = 2)
    setobj = VarList(Varbind("enterprises", "10418.17.2.5.5.1.6.1." + node , Avocent.set_outlet_state(state) ,"INTEGER"))
    session.set(setobj)
