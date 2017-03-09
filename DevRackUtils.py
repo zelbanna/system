@@ -97,6 +97,7 @@ class Avocent(GenDevice):
    entry = self.get_entry(node)
    if entry:
     entry[1] = state
+   sys_log_msg("Avocent : {0} set state to {0} on {0}".format(self._fqdn,state,noder))
   except Exception as exception_error:
    print "Avocent : error setting state " + str(exception_error)
    sys_log_msg("Avocent : error setting state " + str(exception_error))
