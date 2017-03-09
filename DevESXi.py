@@ -226,7 +226,7 @@ class ESXi(GenDevice):
   self.release_lock()
   return True
 
- def shutdown_vms(self):
+ def shutdown_vms(self,aExceptlist):
   from time import sleep
   # Power down everything and save to the statefile, APCupsd statemachine:
   #
@@ -259,9 +259,9 @@ class ESXi(GenDevice):
    for vm in vmlist:
     # Only interested in active VMs
     if vm[2] == "1":
-     if vm[1].startswith("nas"):
+     if vm[1].startswith("svc-nas"):
       deplist.append(vm)
-     elif vm[1] != "management":
+     elif vm[1] not in aExceptlist:
       freelist.append(vm)
       self.ssh_send("vim-cmd vmsvc/power.shutdown " + vm[0])
 
@@ -287,12 +287,12 @@ class ESXi(GenDevice):
    vmlist = self.get_vms()
    for vm in vmlist:
     if vm[2] == "1":
-     if vm[1].startswith("nas"):
+     if vm[1].startswith("svc-nas"):
       self.log("shutdown_vms: Shutdown of NAS vm not completed..")
      elif vm[1].startswith("pulse"):
       self.ssh_send("vim-cmd vmsvc/power.off " + vm[0])
       self.log("shutdown_vms: powering off machine: {}!".format(vm[0]))
-     elif not vm[1] == "management":
+     elif vm[1] not in aExceptlist":
       # Correct? or pass?
       self.ssh_send("vim-cmd vmsvc/power.suspend " + vm[0])
       self.log("shutdown_vms: suspending machine: {}!".format(vm[0]))

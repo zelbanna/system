@@ -16,7 +16,7 @@ __status__ = "Production"
 
 from sys import argv, exit, stdout, path as syspath
 if not len(argv) == 3: 
- print  argv[0] + " <op: powerup | shutdown > <esxi host>"
+ print  argv[0] + " <op: powerup | shutdown > <esxi host> [except-vm]"
  exit(1)
 
 syspath.append('/usr/local/sbin')
@@ -24,10 +24,11 @@ from DevESXi import ESXi
 
 op   = argv[1]
 host = argv[2]
+excpt= argv[3]
 esxi = ESXi(host)
 
 if op == 'powerup':
  esxi.startup_vms()
 elif op == 'shutdown':
- esxi.shutdown_vms()
+ esxi.shutdown_vms([excpt])
 
