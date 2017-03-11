@@ -14,6 +14,7 @@ __version__ = "1.0GA"
 __status__  = "Production"
 
 from GenLib import ping_os, sys_ips2range, sys_ip2int, sys_log_msg
+from PasswordContainer import snmp_read_community
 class Devices(object):
 
  # console port assumes cascaded devices..
@@ -151,7 +152,7 @@ class Devices(object):
    # .1.3.6.1.2.1.1.1.0 : Device info
    # .1.3.6.1.2.1.1.5.0 : Device name
    devobjs = VarList(Varbind('.1.3.6.1.2.1.1.1.0'), Varbind('.1.3.6.1.2.1.1.5.0'))
-   session = Session(Version = 2, DestHost = aIP, Community = 'public', UseNumeric = 1, Timeout = 100000, Retries = 2)
+   session = Session(Version = 2, DestHost = aIP, Community = snmp_read_community, UseNumeric = 1, Timeout = 100000, Retries = 2)
    session.get(devobjs)
   except:
    pass

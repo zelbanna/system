@@ -10,7 +10,7 @@ __author__ = "Zacharias El Banna"
 __version__ = "1.0GA"
 __status__ = "Production"
 
-from PasswordContainer import esxi_username, esxi_password
+from PasswordContainer import esxi_username, esxi_password, snmp_read_community
 from GenLib import GenDevice, sys_log_msg, sys_lock_pidfile, sys_release_pidfile, sys_get_host, sys_is_ip
 from netsnmp import VarList, Varbind, Session
 from select import select
@@ -34,66 +34,53 @@ class ESXi(GenDevice):
  # Here I assume kvm IP is reachable through DNS by adding '-' and KVM type to FQDN:
  # <hostname>-[kvm|ipmi|amt].<domain>
  #
- def __init__(self,ahost,adomain=None):
-  if ahost and adomain:
-   self.name   = ahost
-   self._kvmip = None
-   GenDevice.__init__(self,ahost,adomain,'esxi')
-  elif sys_is_ip(ahost):
-   self.name   = "unknown"
-   self._kvmip = ahost
-   GenDevice.__init__(self,ahost,None,'esxi')
-  else:
-   fqdn = ahost.split('.')
-   self.name  = fqdn[0]
-   domain = None if len(fqdn) < 2 else ".".join(fqdn[1:])
-   self._kvmip  = None
-   GenDevice.__init__(self,fqdn[0],domain,'esxi')
+ def __init__(self,aHost,aDomain=None):
+  GenDevice.__init__(self,aHost,aDomain,'esxi')
+  self._kvmip  = None
   self._sshclient = None
-  self.community = "public"
   self.backuplist = []
-  self.statefile = "/var/tmp/esxi." + self.name + ".vmstate.log"
+  self.statefile = "/var/tmp/esxi." + self._hostname + ".vmstate.log"
   self._threads = {}
   
  def __str__(self):
-  return str(self.name) + " SSHConnected:" + str(self._sshclient != None)  + " SNMP_Community:" + self.community + " Backuplist:" + str(self.backuplist) + " statefile:" + self.statefile + " Threads:" + str(self._threads.keys())
+  return self._hostname + " SSHConnected:" + str(self._sshclient != None)  + " Backuplist:" + str(self.backuplist) + " statefile:" + self.statefile + " Threads:" + str(self._threads.keys())
 
  def log(self,amsg):
-  sys_log_msg(amsg, "/var/log/network/" + self.name + ".operations.log")
+  sys_log_msg(amsg, "/var/log/network/" + self._hostname + ".operations.log")
 
- def threading(self, aoperation):
+ def threading(self, aOperation):
   from threading import Thread
-  op = getattr(self, aoperation, None)
+  op = getattr(self, aOperation, None)
   if op:
    thread = Thread(target = op)
-   self._threads['aoperation'] = thread
-   thread.name = aoperation
+   self._threads['aOperation'] = thread
+   thread.name = aOperation
    thread.start()
-   self.log("threading: Started operation [{}]".format(aoperation))
+   self.log("threading: Started operation [{}]".format(aOperation))
   else:
-   self.log("threading: Illegal operation passed [{}]".format(aoperation))
+   self.log("threading: Illegal operation passed [{}]".format(aOperation))
 
  # Different FQDN for KVM types
- def get_kvm_ip(self, adefaulttype = 'ipmi'):
+ def get_kvm_ip(self, adefaulttype = 'kvm'):
   if self._kvmip:
    return self._kvmip
   elif self._domain:
    for type in ['amt','ipmi','kvm']:
-    ip = sys_get_host("{0}-{1}.{2}".format(self.name,type,self._domain))
+    ip = sys_get_host("{0}-{1}.{2}".format(self._hostname,type,self._domain))
     if ip:
      self._kvmip = ip + ":16992" if type == 'amt' else ip
      break
    else:
     # No DNS found
-    ip = "{}-{}.{}".format(self.name,adefaulttype,self._domain)
+    ip = "{}-{}.{}".format(self._hostname,adefaulttype,self._domain)
     self._kvmip = ip + ":16992" if adefaulttype == "amt" else ip
   return self._kvmip
 
  def create_lock(self,atime):
-  sys_lock_pidfile("/tmp/esxi." + self.name + ".vm.pid",atime)
+  sys_lock_pidfile("/tmp/esxi." + self._hostname + ".vm.pid",atime)
 
  def release_lock(self):
-  sys_release_pidfile("/tmp/esxi." + self.name + ".vm.pid")
+  sys_release_pidfile("/tmp/esxi." + self._hostname + ".vm.pid")
 
  #
  # ESXi ssh interaction - Connect() send, send,.. Close()
@@ -104,9 +91,9 @@ class ESXi(GenDevice):
    try:
     self._sshclient = SSHClient()
     self._sshclient.set_missing_host_key_policy(AutoAddPolicy())
-    self._sshclient.connect(self._fqdn, username=esxi_username, password=esxi_password )
+    self._sshclient.connect(self._ip, username=esxi_username, password=esxi_password )
    except AuthenticationException:
-    self.log("DEBUG: Authentication failed when connecting to %s" % self._fqdn)
+    self.log("DEBUG: Authentication failed when connecting to %s" % self._ip)
     self._sshclient = None
     return False
   return True
@@ -137,7 +124,7 @@ class ESXi(GenDevice):
  def get_id_vm(self, aname):
   try:
    vmnameobjs = VarList(Varbind('.1.3.6.1.4.1.6876.2.1.1.2'))
-   session = Session(Version = 2, DestHost = self._fqdn, Community = self.community, UseNumeric = 1, Timeout = 100000, Retries = 2)
+   session = Session(Version = 2, DestHost = self._ip, Community = snmp_read_community, UseNumeric = 1, Timeout = 100000, Retries = 2)
    session.walk(vmnameobjs)
    for result in vmnameobjs:
     if result.val == aname:
@@ -149,7 +136,7 @@ class ESXi(GenDevice):
  def get_state_vm(self, aid):
   try:
    vmstateobj = VarList(Varbind(".1.3.6.1.4.1.6876.2.1.1.6." + str(aid)))
-   session = Session(Version = 2, DestHost = self._fqdn, Community = self.community, UseNumeric = 1, Timeout = 100000, Retries = 2)
+   session = Session(Version = 2, DestHost = self._ip, Community = snmp_read_community, UseNumeric = 1, Timeout = 100000, Retries = 2)
    session.get(vmstateobj)
    return vmstateobj[0].val
   except:
@@ -164,7 +151,7 @@ class ESXi(GenDevice):
   try:
    vmnameobjs = VarList(Varbind('.1.3.6.1.4.1.6876.2.1.1.2'))
    vmstateobjs = VarList(Varbind('.1.3.6.1.4.1.6876.2.1.1.6'))
-   session = Session(Version = 2, DestHost = self._fqdn, Community = self.community, UseNumeric = 1, Timeout = 100000, Retries = 2)
+   session = Session(Version = 2, DestHost = self._ip, Community = snmp_read_community, UseNumeric = 1, Timeout = 100000, Retries = 2)
    session.walk(vmnameobjs)
    session.walk(vmstateobjs)
    index = 0
@@ -219,7 +206,7 @@ class ESXi(GenDevice):
     sleep(60)
    else:
     vm = line.strip('\n').split(',')
-    if vm[2] == "1" and not vm[1] == "management" :
+    if vm[2] == "1":
      esxi.ssh_send("vim-cmd vmsvc/power.on " + vm[0])
   remove(sfile)
   self.ssh_close()

@@ -13,33 +13,67 @@ __status__ = "Production"
 from os import remove, path as ospath, system
 from time import sleep, localtime, strftime
 from struct import pack, unpack
-from socket import inet_ntoa, inet_aton, gethostbyname
+from socket import inet_ntoa, inet_aton, gethostbyname, getfqdn
 
 ################################# Generics ####################################
 
 class GenDevice(object):
  
+ # set a number of entries:
+ # - _ip
+ # - _hostname
+ # - _domain
+ # - _fqdn
+ # - name? == hostname when looked up
+ 
+ # Two options:
+ # ahost and adomain is set, then FQDN = host.domain and ip is derived
+ # if ahost is ip, try to lookup hostname and domain
  #
- # Factory from ip :-)
- #
- def __init__(self, ahost, adomain, atype):
-  self._hostname = ahost
-  self._domain = adomain
+ # use _ip everywhere we need to connect, use fqdn and domain and host for display purposes
+ 
+ def __init__(self, ahost, adomain = None, atype = "unknown"):
   self._type = atype
-  self._fqdn = ahost if not adomain else ahost + "." + adomain
+  if sys_is_ip(ahost):
+   self._ip = ahost
+   try:
+    self._fqdn = getfqdn(ahost)
+    self._hostname = self._fqdn.split('.')[0]
+    self._domain = ".".join(self._fqdn.split('.')[1:])
+   except:
+    self._fqdn = ahost
+    self._hostname = ahost
+    self._domain = aDomain
+  else:
+   # ahost is a aname, if domain is not supplied, can it be part of host? 
+   if adomain:
+    self._fqdn = ahost + "." + adomain
+    self._hostname = ahost
+    self._domain = adomain
+    try:
+     self._ip = gethostbyname(self._fqdn)
+    except:
+     self._ip = gethostbyname(ahost)
+   else:
+    self._fqdn = ahost
+    self._hostname = ahost.split('.')[0]
+    self._domain = ".".join(ahost.split('.')[1:])
+    try:
+     self._ip = gethostbyname(ahost)
+    except:
+     self._ip = ahost
+  if self._domain == "":
+   self._domain = None
 
  def __str__(self):
-  return "FQDN: {} IP: {} Hostname: {} Domain: {} Type:{}".format(self._fqdn, "", self._hostname, self._domain, self._type)
+  return "FQDN: {} IP: {} Hostname: {} Domain: {} Type:{}".format(self._fqdn, self._ip, self._hostname, self._domain, self._type)
  
  def ping_device(self):
   return ping_os(self._fqdn)
 
  def get_type(self):
   return self._type
-
- def get_ip(self):
-  return sys_get_host(self._fqdn)
-
+ 
 ################################# Generics ####################################
 
 _sys_debug = False
