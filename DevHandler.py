@@ -10,20 +10,19 @@ __author__  = "Zacharias El Banna"
 __version__ = "1.0GA"
 __status__  = "Production"
 
-from GenLib import ConfObj, ping_os, sys_ips2range, sys_ip2int, sys_log_msg
+from GenLib import ConfObject, ping_os, sys_ips2range, sys_ip2int, sys_log_msg
 from PasswordContainer import snmp_read_community
 
 # keys.sort(key=sys_ip2int)
 # - Devices is the maintainer of discovered devices, use sys_ip2int as sort key
 
-class Devices(ConfObj):
+class Devices(ConfObject):
 
  def __init__(self, aconfigfile = '/var/www/device.hosts.json'):
-  ConfObj.__init__(self, aconfigfile)
+  ConfObject.__init__(self, aconfigfile)
   
  def __str__(self):
   return "Device: {}\n{}".format(self._configfile, self.get_json())
-
    
  ##################################### Device Discovery and Detection ####################################
  #

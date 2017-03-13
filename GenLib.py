@@ -72,7 +72,7 @@ class GenDevice(object):
   return self._type
 
 
-class ConfObj(object):
+class ConfObject(object):
 
  def __init__(self, aFilename = None):
   self._configitems = {}
@@ -80,6 +80,9 @@ class ConfObj(object):
 
  def __str__(self):
   return "Configuration: - {}".format(str(self._configitems))
+
+ def load_snmp(self):
+  pass
 
  def load_json(self):
   try:

@@ -11,7 +11,7 @@ __author__  = "Zacharias El Banna"
 __version__ = "0.1"
 __status__  = "Beta"
 
-from GenLib import GenDevice, sys_log_msg
+from GenLib import GenDevice, ConfObject, sys_log_msg
 import PasswordContainer as PC
 
 ######################################## Console ########################################
@@ -19,24 +19,16 @@ import PasswordContainer as PC
 # Opengear :-)
 #
 
-class OpenGear(GenDevice):
+class OpenGear(GenDevice, ConfObject):
 
  def __init__(self, ahost, adomain = None):
   GenDevice.__init__(self,ahost,adomain,'console')
-  self._configitems = {}
+  ConfObject.__init__(self,None)
 
  def __str__(self):
   return "OpenGear - {}".format(GenDevice.__str__(self))
- 
- def get_entry(self, akey):
-  return self._configitems.get(akey,None)
 
- def get_keys(self):
-  keys = self._configitems.keys()
-  keys.sort()
-  return keys
-
- def load_conf(self):
+ def load_snmp(self):
   from netsnmp import VarList, Varbind, Session
   try:
    portobjs = VarList(Varbind('.1.3.6.1.4.1.25049.17.2.1.2'))
@@ -44,7 +36,7 @@ class OpenGear(GenDevice):
    session.walk(portobjs)
    self._configitems.clear()
    for result in portobjs:
-    # [ Port , Name ]
+    # [ Port ] = Name
     self._configitems[ int(result.iid) ] = result.val
   except Exception as exception_error:
    print "OpenGear : error loading conf " + str(exception_error)
@@ -56,7 +48,8 @@ class OpenGear(GenDevice):
 # Avocent :-)
 #
 
-class Avocent(GenDevice):
+# Sort key function: lambda x: int(x.split('.')[0])*100+int(x.split('.')[1])
+class Avocent(GenDevice, ConfObject):
 
  _getstatemap = { '1':'off', '2':'on' }
  _setstatemap = { 'off':'3', 'on':'2', 'reboot':'4' }
@@ -71,18 +64,10 @@ class Avocent(GenDevice):
 
  def __init__(self, ahost, adomain):
   GenDevice.__init__(self,ahost,adomain,'pdu')
-  self._configitems = {}
+  ConfObject.__init__(self,None)
 
  def __str__(self):
   return "Avocent - {}".format(GenDevice.__str__(self))
-
- def get_entry(self, akey):
-  return self._configitems.get(akey,None)
-
- def get_keys(self):
-  keys = self._configitems.keys()
-  keys.sort(key = lambda x: int(x.split('.')[0])*100+int(x.split('.')[1]))
-  return keys
 
  def set_state(self,node,state):
   from netsnmp import VarList, Varbind, Session
@@ -93,7 +78,7 @@ class Avocent(GenDevice):
    session.set(setobj)
    entry = self.get_entry(node)
    if entry:
-    entry[1] = state
+    entry['state'] = state
    sys_log_msg("Avocent : {0} set state to {0} on {0}".format(self._ip,state,node))
   except Exception as exception_error:
    print "Avocent : error setting state " + str(exception_error)
@@ -108,17 +93,17 @@ class Avocent(GenDevice):
    session.set(setobj)
    entry = self.get_entry(node)
    if entry:
-    entry[0] = name
+    entry['name'] = name
   except Exception as exception_error:
-   print "Avocent : error setting state " + str(exception_error)
-   sys_log_msg("Avocent : error setting state " + str(exception_error))
+   print "Avocent : error setting name " + str(exception_error)
+   sys_log_msg("Avocent : error setting name " + str(exception_error))
 
- def load_conf(self):
+ def load_snmp(self):
   from netsnmp import VarList, Varbind, Session
   try:
    outletobjs = VarList(Varbind('.1.3.6.1.4.1.10418.17.2.5.5.1.4'))
    stateobjs  = VarList(Varbind('.1.3.6.1.4.1.10418.17.2.5.5.1.5'))
-   pduobjs    = VarList(Varbind('.1.3.6.1.4.1.10418.17.2.5.3.1.3'))
+   pduobjs = VarList(Varbind('.1.3.6.1.4.1.10418.17.2.5.3.1.3'))
    session = Session(Version = 2, DestHost = self._ip, Community = PC.snmp_read_community, UseNumeric = 1, Timeout = 100000, Retries = 2)
    session.walk(outletobjs)
    session.walk(stateobjs)
@@ -129,7 +114,7 @@ class Avocent(GenDevice):
     # outlet.iid = outlet number
     pdu= outlet.tag[34:]
     node = pdu + "." + outlet.iid
-    self._configitems[ node ] = [ outlet.val, Avocent.get_outlet_state(statedict[node]), pdudict.get(pdu,"unknown") + "." + outlet.iid ]
+    self._configitems[ node ] = { 'name': outlet.val, 'state':Avocent.get_outlet_state(statedict[node]), 'pduslot':pdudict.get(pdu,"unknown") + "." + outlet.iid }
   except Exception as exception_error:
    print "Avocent : error loading conf " + str(exception_error)
    sys_log_msg("Avocent : error loading conf " + str(exception_error))
@@ -138,12 +123,12 @@ class Avocent(GenDevice):
   from netsnmp import VarList, Varbind, Session
   pdus = []
   try:
-   pduobjs= VarList(Varbind('.1.3.6.1.4.1.10418.17.2.5.3.1.3'))
+   pduobjs = VarList(Varbind('.1.3.6.1.4.1.10418.17.2.5.3.1.3'))
    session = Session(Version = 2, DestHost = self._ip, Community = PC.snmp_read_community, UseNumeric = 1, Timeout = 100000, Retries = 2)
    session.walk(pduobjs)
    for pdu in pduobj:
     pdus.append([pdu.iid, pdu.val])
   except Exception as exception_error:
-   print "Avocent : error loading names " + str(exception_error)
-   sys_log_msg("Avocent : error loading names " + str(exception_error))
+   print "Avocent : error loading pdu member names " + str(exception_error)
+   sys_log_msg("Avocent : error loading pdu member names " + str(exception_error))
   return pdus
