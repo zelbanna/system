@@ -3,7 +3,7 @@
 Generic Library
 
 """
-__author__ = "Zacharias El Banna"                     
+__author__ = "Zacharias El Banna"
 __version__ = "1.0GA"
 __status__ = "Production"
 
@@ -70,6 +70,64 @@ class GenDevice(object):
 
  def get_type(self):
   return self._type
+
+
+class ConfObj(object):
+
+ def __init__(self, aFilename = None):
+  self._configitems = {}
+  self._filename = aFilename
+
+ def __str__(self):
+  return "Configuration: - {}".format(str(self._configitems))
+
+ def load_json(self):
+  try:
+   self._configitems.clear()
+   from json import load as json_load_file
+   with open(self._filename) as conffile:
+    self._configitems = json_load_file(conffile)
+  except:
+   pass
+   
+ def save_json(self):
+  from json import dump as json_save_file
+  with open(self._filename,'w') as conffile:
+    json_save_file(self._configitems, conffile, indent = 1, sort_keys = True)
+
+ def get_json(self):
+  from json import dumps as json_get_str
+  return json_get_str(self._configitems, indent = 1, sort_keys = True)
+
+ def get_json_to_html(self):
+  pass
+
+ def get_keys(self, aTargetName = None, aTargetValue = None, aSortKey = None):
+  if not aTargetName:
+   keys = self._configitems.keys()
+  else:
+   keys = []
+   for key, entry in self._configitems.iteritems():
+    if entry[aTargetName] == aTargetValue:
+     keys.append(key)
+  keys.sort(key = aSortKey)
+  return keys
+
+ def get_entry(self, aKey):
+  return self._configitems.get(aKey,None)
+
+ def get_select_entries(self, aKeyList):
+  entries = []
+  for key in aKeyList:
+   entries.append(self._configitems.get(key))
+  return entries
+
+ def add_entry(self, aKey, aEntry, aWriteJSON = False):
+  self._configitems[aKey] = aEntry
+  if aWriteConf:
+   if len(self._configitems) == 1:
+    self.load_json()
+   self.save_json()
  
 ################################# Generics ####################################
 
@@ -128,14 +186,13 @@ def simple_arg_parser(args):
  currkey = None
  for arg in args:
   if arg.startswith('-'):
-   if currkey:    
+   if currkey:
     argdict[currkey] = True
-   currkey = arg.lstrip('-') 
+   currkey = arg.lstrip('-')
   else:
-   if currkey:         
+   if currkey:
     argdict[currkey] = arg
     currkey = None
-                 
  if currkey:
   argdict[currkey] = True
  return argdict

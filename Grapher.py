@@ -68,7 +68,7 @@ class Grapher(object):
       handler = line[8:]
      elif line.startswith("update"):
       update = line[7:10].strip()
-      self._configitems[entry] = [handler, update]
+      self._configitems[entry] = {'handler':handler, 'update':update}
       entry,handler,update = None, None, None
       extra = []
     elif line.startswith("[") and line.endswith("]"):
@@ -79,17 +79,17 @@ class Grapher(object):
    self.load_conf()
   return self._configitems.get(aentry,None)
 
- def get_entries(self):
+ def get_keys(self):
   if not self._configitems:
    self.load_conf()
   return sorted(self._configitems.keys())
-  
- def update_entry(self, aentry, astate):
+ 
+ def update_entry(self, akey, astate):
   oldstate = "no" if astate == "yes" else "yes"
   try:
    with open(self._configfile, 'r') as conffile:
     filedata = conffile.read()
-   pos = filedata.find("[" + aentry + "]")
+   pos = filedata.find("[" + akey + "]")
    old,new = None, None
    if pos > 0:
     old = filedata[pos:pos + 100].split("[")[1]
@@ -97,10 +97,10 @@ class Grapher(object):
     filedata = filedata.replace(old,new)
     with open(self._configfile, 'w') as conffile:
      conffile.write(filedata)
-    data = self._configitems.get(aentry,None)
+    data = self._configitems.get(akey,None)
     if data:
-     data[1] = astate
-     self._configitems[aentry] = data
+     data['update'] = astate
+     self._configitems[akey] = data
   except Exception as err:
    sys_log_msg("Grapher updateEntry: Error [{}]".format(str(err)))
 
@@ -111,7 +111,7 @@ class Grapher(object):
    conffile.write("[" + akey + "]\n")
    conffile.write("address " + ahandler + "\n")
    conffile.write("update " + aupdate + "\n")
-  self._configitems[akey] = [ ahandler, aupdate ]
+  self._configitems[akey] = { 'handler':ahandler, 'update':aupdate }
  
  #
  # Writes plugin info for devices found with DeviceHandler
@@ -130,11 +130,9 @@ class Grapher(object):
    chmod(self._graphplug, 0o777)
 
    devs = Devices()
-   devs.load_conf()
-   for key in devs.get_entries():
-    sys_log_msg("ACC: {}".format(key))
+   devs.load_json()
+   for key in devs.get_keys():
     sema.acquire()
-    sys_log_msg("RUN: {}".format(key))
     t = Thread(target = self._detect, args=[key, devs.get_entry(key), ahandler, flock, sema])
     t.start()
    for i in range(10):

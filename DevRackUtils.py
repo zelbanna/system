@@ -31,7 +31,7 @@ class OpenGear(GenDevice):
  def get_entry(self, akey):
   return self._configitems.get(akey,None)
 
- def get_entries(self):
+ def get_keys(self):
   keys = self._configitems.keys()
   keys.sort()
   return keys
@@ -79,7 +79,7 @@ class Avocent(GenDevice):
  def get_entry(self, akey):
   return self._configitems.get(akey,None)
 
- def get_entries(self):
+ def get_keys(self):
   keys = self._configitems.keys()
   keys.sort(key = lambda x: int(x.split('.')[0])*100+int(x.split('.')[1]))
   return keys
