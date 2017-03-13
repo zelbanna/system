@@ -152,12 +152,10 @@ class ESXi(GenDevice):
    session = Session(Version = 2, DestHost = self._ip, Community = snmp_read_community, UseNumeric = 1, Timeout = 100000, Retries = 2)
    session.walk(vmnameobjs)
    session.walk(vmstateobjs)
-   index = 0
-   for result in vmnameobjs:
+   for index,result in enumerate(vmnameobjs):
     statetuple = [result.iid, result.val, ESXi.get_state_str(vmstateobjs[index].val)]
     statetuple.append(result.val in self.backuplist)
     statelist.append(statetuple)
-    index = index + 1
   except:
    pass
   return statelist

@@ -35,8 +35,8 @@ class GenDevice(object):
    self._ip = ahost
    try:
     self._fqdn = getfqdn(ahost)
-    self._hostname = self._fqdn.split('.')[0]
-    self._domain = ".".join(self._fqdn.split('.')[1:])
+    self._hostname = self._fqdn.partition('.')[0]
+    self._domain   = self._fqdn.partition('.')[2]
    except:
     self._fqdn = ahost
     self._hostname = ahost
@@ -53,8 +53,8 @@ class GenDevice(object):
      self._ip = gethostbyname(ahost)
    else:
     self._fqdn = ahost
-    self._hostname = ahost.split('.')[0]
-    self._domain = ".".join(ahost.split('.')[1:])
+    self._hostname = self._fqdn.partition('.')[0]
+    self._domain   = self._fqdn.partition('.')[2]
     try:
      self._ip = gethostbyname(ahost)
     except:
