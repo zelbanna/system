@@ -15,8 +15,7 @@ __version__ = "10.0"
 __status__ = "Production"
 
 from sys import argv, exit, path as syspath
-syspath.append('/usr/local/sbin')
-from IPMI import IPMI
+from sdcp.utils.IPMI import IPMI
 
 
 ############################ MAIN ############################

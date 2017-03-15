@@ -3,5 +3,5 @@
 *.pyc
 PasswordContainer.*
 plugins
-
+sdcp
 guacd*

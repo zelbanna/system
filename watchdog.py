@@ -56,9 +56,9 @@ site = argv[3]
 upif = argv[4]
 
 ########################### Run ################################
-from GenLib import sys_get_results, sys_log_msg, sys_set_debug
-from DNS import get_loopia_ip, set_loopia_ip, get_loopia_suffix, sync_pdns
-from DevRouter import SRX
+from sdcp.utils.GenLib import sys_get_results, sys_log_msg, sys_set_debug
+from sdcp.utils.DNS import get_loopia_ip, set_loopia_ip, get_loopia_suffix, sync_pdns
+from sdcp.devices.Router import SRX
 
 if argv[1] == "debug":
  sys_set_debug(True)
