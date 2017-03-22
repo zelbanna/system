@@ -15,7 +15,7 @@ __status__ = "Production"
 from sys import argv, exit, path as syspath
 syspath.append('/usr/local/sbin')
 from sdcp.devices.DevHandler import Devices
-from sdcp.utils.GenLib import simple_arg_parser
+from sdcp.core.GenLib import simple_arg_parser
 
 args = simple_arg_parser(argv)
 if len(args) < 2:
