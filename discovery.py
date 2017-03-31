@@ -4,8 +4,6 @@
 """Program docstring.
 
 Application to discovery network hosts on a subnet and deduce model (and manufacturer) and name
-- Places found munin things  in /var/tmp/munin.conf
-- Places found hosts updates in /var/tmp/hosts.conf
 
 """
 __author__ = "Zacharias El Banna"
@@ -14,8 +12,8 @@ __status__ = "Production"
 
 from sys import argv, exit, path as syspath
 syspath.append('/usr/local/sbin')
-from sdcp.devices.DevHandler import Devices
-from sdcp.utils.GenLib import simple_arg_parser
+from sdcp.devices.DevHandler device_discover
+from sdcp.core.GenLib import simple_arg_parser
 
 args = simple_arg_parser(argv)
 if len(args) < 2:
@@ -28,5 +26,4 @@ if len(args) < 2:
 start = args.get('start', '127.0.0.1')
 stop  = args.get('end', start)
 domain = args.get('domain','mgmt')
-devs = Devices()
-devs.discover(start,stop,domain)
+device_discover(start,stop,domain)
