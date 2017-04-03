@@ -57,7 +57,7 @@ upif = argv[4]
 
 ########################### Run ################################
 from sdcp.core.XtraLib import sys_get_results, sys_log_msg, sys_set_debug
-from sdcp.core.DNS import get_loopia_ip, set_loopia_ip, get_loopia_suffix, sync_pdns
+from sdcp.core.DNS import get_loopia_ip, set_loopia_ip, get_loopia_suffix, pdns_sync
 from sdcp.devices.Router import SRX
 
 if argv[1] == "debug":
@@ -71,7 +71,7 @@ try:
   # First check DNS recursion
   if len(srx.dnslist) > 0:
    if srx.ping_rpc(srx.dnslist[0]):
-    sync_pdns(srx.dnslist)
+    pdns_sync(srx.dnslist)
     if srx.dhcpip != gethostbyname(site + get_loopia_suffix()):
      if srx.dhcpip != get_loopia_ip(site):
       set_loopia_ip(site,srx.dhcpip)
