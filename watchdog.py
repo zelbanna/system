@@ -57,7 +57,7 @@ upif = argv[4]
 
 ########################### Run ################################
 from sdcp.core.XtraLib import sys_get_results, sys_log_msg, sys_set_debug
-from sdcp.core.DNS import get_loopia_ip, set_loopia_ip, get_loopia_suffix, pdns_sync
+from sdcp.core.dns import get_loopia_ip, set_loopia_ip, get_loopia_suffix, pdns_sync
 from sdcp.devices.Router import SRX
 
 if argv[1] == "debug":
