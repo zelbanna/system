@@ -15,6 +15,7 @@ __status__ = "Production"
 from socket import gethostbyname
 from sys import argv, exit, path as syspath
 syspath.append('/usr/local/sbin/')
+from sdcp.core.XtraLib import get_results, sys_log_msg, set_debug
 
 if len(argv) < 5 or argv[1] not in [ "run", "debug", "install" ]:
  print argv[0] + " <run | debug | install> <fw> <local site NAME> <fw upstream interface> [<ipsec hub NAME>]"
@@ -56,12 +57,11 @@ site = argv[3]
 upif = argv[4]
 
 ########################### Run ################################
-from sdcp.core.XtraLib import sys_get_results, sys_log_msg, sys_set_debug
 from sdcp.core.dns import get_loopia_ip, set_loopia_ip, get_loopia_suffix, pdns_sync
 from sdcp.devices.Router import SRX
 
 if argv[1] == "debug":
- sys_set_debug(True)
+ set_debug(True)
 
 try:
  srx = SRX(fwip)
@@ -86,9 +86,9 @@ try:
       gwip = gethostbyname(gw + get_loopia_suffix())
       # check configured gw ip, still ok - try to ping, otherwise reconf 
       if gwip == address:
-       sys_log_msg("Reachability Check - Ping IPsec gateway (" + gw + " | " + gwip + "): " + sys_get_results(srx.ping_rpc(gwip)))
+       sys_log_msg("Reachability Check - Ping IPsec gateway (" + gw + " | " + gwip + "): " + get_results(srx.ping_rpc(gwip)))
       else: 
-       sys_log_msg("Reachability Check - Reconfigure IPsec gateway: " + sys_get_results(srx.set_ipsec(gwname,address,gwip)))
+       sys_log_msg("Reachability Check - Reconfigure IPsec gateway: " + get_results(srx.set_ipsec(gwname,address,gwip)))
   
    else:
     sys_log_msg("Reachability Error - Can't reach external name server (DNS): " + srx.dnslist[0])
