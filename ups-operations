@@ -20,7 +20,7 @@ if not len(argv) == 3:
  exit(1)
 
 syspath.append('/usr/local/sbin')
-from DevESXi import ESXi
+from sdcp.devices.ESXi import ESXi
 
 op   = argv[1]
 host = argv[2]
@@ -31,4 +31,3 @@ if op == 'powerup':
  esxi.startup_vms()
 elif op == 'shutdown':
  esxi.shutdown_vms([excpt])
-
