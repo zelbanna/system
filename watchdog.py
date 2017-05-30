@@ -75,11 +75,9 @@ try:
     if srx.dhcpip != gethostbyname(site + get_loopia_suffix()):
      if srx.dhcpip != get_loopia_ip(site):
       set_loopia_ip(site,srx.dhcpip)
-
     # Check IPsec, can we reach the hub?  
     if not gw == "":
      address, tunnels = srx.get_ipsec(gwname)
-
      # Assume if one tunnel is up it's the hub 
      if tunnels == 0:
       # no tunnels active
@@ -89,7 +87,6 @@ try:
        log_msg("Reachability Check - Ping IPsec gateway (" + gw + " | " + gwip + "): " + get_results(srx.ping_rpc(gwip)))
       else: 
        log_msg("Reachability Check - Reconfigure IPsec gateway: " + get_results(srx.set_ipsec(gwname,address,gwip)))
-  
    else:
     log_msg("Reachability Error - Can't reach external name server (DNS): " + srx.dnslist[0])
     exit(1) 
