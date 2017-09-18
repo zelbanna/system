@@ -60,8 +60,7 @@ upif = argv[4]
 from sdcp.tools.dns import get_loopia_ip, set_loopia_ip, get_loopia_suffix, pdns_sync
 from sdcp.devices.Router import SRX
 
-if argv[1] == "debug":
- set_debug(True)
+set_debug(argv[1] == "debug")
 
 try:
  srx = SRX(fwip)
