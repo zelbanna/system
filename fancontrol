@@ -15,7 +15,7 @@ __version__ = "10.0"
 __status__ = "Production"
 
 from sys import argv, exit, path as syspath
-from sdcp.core.IPMI import IPMI
+from sdcp.devices.IPMI import IPMI
 
 
 ############################ MAIN ############################
