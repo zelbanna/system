@@ -16,7 +16,7 @@ __status__ = "Production"
 
 from sys import argv, exit, stdout, path as syspath
 if not len(argv) == 3: 
- print  argv[0] + " <op: powerup | shutdown > <esxi ip> [except-vm]"
+ print  argv[0] + " <op: powerup | shutdown > <esxi ip> <esxi name> [except-vm]"
  exit(1)
 
 syspath.append('/usr/local/sbin')
@@ -24,8 +24,10 @@ from sdcp.devices.ESXi import ESXi
 
 op   = argv[1]
 ip   = argv[2]
-excpt= argv[3]
+name = argv[3]
+excpt= argv[4]
 esxi = ESXi(ip)
+esxi.set_name(name)
 
 if op == 'powerup':
  esxi.startup_vms()
