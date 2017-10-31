@@ -15,7 +15,7 @@ __status__ = "Production"
 from socket import gethostbyname
 from sys import argv, exit, path as syspath
 syspath.append('/usr/local/sbin/')
-from sdcp.core.XtraLib import get_results, log_msg, set_debug
+from sdcp.core.extras import get_results, log_msg, set_debug
 
 if len(argv) < 5 or argv[1] not in [ "run", "debug", "install" ]:
  print argv[0] + " <run | debug | install> <fw> <local site NAME> <fw upstream interface> [<ipsec hub NAME>]"
@@ -58,12 +58,12 @@ upif = argv[4]
 
 ########################### Run ################################
 from sdcp.tools.dns import get_loopia_ip, set_loopia_ip, get_loopia_suffix, pdns_sync
-from sdcp.devices.Router import SRX
+from sdcp.devices.srx import Device
 
 set_debug(argv[1] == "debug")
 
 try:
- srx = SRX(fwip)
+ srx = Device(fwip)
  if srx.connect():
   srx.load_dhcp()
 
