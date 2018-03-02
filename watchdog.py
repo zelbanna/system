@@ -15,10 +15,11 @@ __status__ = "Production"
 from socket import gethostbyname
 from sys import argv, exit, path as syspath
 syspath.append('/usr/local/sbin/')
-from sdcp.core.extras import get_results, log_msg, set_debug
+from sdcp.core.extras import get_results
+from sdcp.core.logger import log
 
-if len(argv) < 5 or argv[1] not in [ "run", "debug", "install" ]:
- print argv[0] + " <run | debug | install> <fw> <local site NAME> <fw upstream interface> [<ipsec hub NAME>]"
+if len(argv) < 5 or argv[1] not in [ "run", "install" ]:
+ print argv[0] + " <run | install> <fw> <local site NAME> <fw upstream interface> [<ipsec hub NAME>]"
  print ""
  print " - ipsec hub site name mist be same as gw in DNS (through lookup) AND used in ike, e.g. site-gw"
  print ""
@@ -42,7 +43,7 @@ MAILTO=root
 try:
  fwip = gethostbyname(argv[2])
 except Exception as err:
- log_msg("System Error - local name server resolution not working, check DNS status")
+ log("System Error - local name server resolution not working, check DNS status")
  exit(1)
 
 
@@ -59,8 +60,6 @@ upif = argv[4]
 ########################### Run ################################
 from sdcp.tools.dns import get_loopia_ip, set_loopia_ip, get_loopia_suffix, pdns_sync
 from sdcp.devices.srx import Device
-
-set_debug(argv[1] == "debug")
 
 try:
  srx = Device(fwip)
@@ -83,19 +82,19 @@ try:
       gwip = gethostbyname(gw + get_loopia_suffix())
       # check configured gw ip, still ok - try to ping, otherwise reconf 
       if gwip == address:
-       log_msg("Reachability Check - Ping IPsec gateway (" + gw + " | " + gwip + "): " + get_results(srx.ping_rpc(gwip)))
+       log("Reachability Check - Ping IPsec gateway (" + gw + " | " + gwip + "): " + get_results(srx.ping_rpc(gwip)))
       else: 
-       log_msg("Reachability Check - Reconfigure IPsec gateway: " + get_results(srx.set_ipsec(gwname,address,gwip)))
+       log("Reachability Check - Reconfigure IPsec gateway: " + get_results(srx.set_ipsec(gwname,address,gwip)))
    else:
-    log_msg("Reachability Error - Can't reach external name server (DNS): " + srx.dnslist[0])
+    log("Reachability Error - Can't reach external name server (DNS): " + srx.dnslist[0])
     exit(1) 
     
   else:
-   log_msg("Reachability Error - Can't find DNS in DHCP lease, renewing")
+   log("Reachability Error - Can't find DNS in DHCP lease, renewing")
    srx.renew_dhcp(upif)
   srx.close()
  else:
-  log_msg("System Error - Cannot reach firewall, check Power and Cables are ok")
+  log("System Error - Cannot reach firewall, check Power and Cables are ok")
    
 except Exception as checks:
- log_msg("Watchdog Error: " + str(checks))
+ log("Watchdog Error: " + str(checks))
